@@ -1,0 +1,16 @@
+{
+  "network": "testnet",
+  "escrow": "escrow-v2.pactpay-530c506b.testnet",
+  "token": "token.pactpay-530c506b.testnet",
+  "sha256": "2bd45e5d64e440970498b81c29b9fd43a513a079316946f68e1fcf76e8d374d3",
+  "transactions": {
+    "deploy": {
+      "hash": "5uPCikZtsU19hLt89vBdwXH18n2iNzsDnRbsWYr4iZWm",
+      "signer": "pactpay-530c506b.testnet"
+    },
+    "register": {
+      "hash": "FCsHH4shZX8YKvK5g4Ee5f5JBPYQwxZf6bPfaqcSq8AL",
+      "signer": "pactpay-530c506b.testnet"
+    }
+  }
+}

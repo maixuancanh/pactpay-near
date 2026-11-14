@@ -1,0 +1,30 @@
+import {readFile,writeFile} from "node:fs/promises";
+import {createHash,randomBytes} from "node:crypto";
+import {Account,KeyPairSigner,providers,transactions} from "near-api-js";
+const old=JSON.parse(await readFile("docs/near/testnet-smoke.json"));
+const ids=[old.merchant,old.buyers[1]];
+const files=["deploy-key.json",ids[1]+".json"];
+const rpc=new providers.JsonRpcProvider({url:"https://test.rpc.fastnear.com"});
+const accounts=await Promise.all(files.map(async(file,i)=>new Account(ids[i],rpc,KeyPairSigner.fromSecretKey(JSON.parse(await readFile(".near-testnet/"+file)).secretKey))));
+const [merchant,buyer]=accounts;
+const {escrow,token}=old;
+const txs=[];
+async function send(who,receiverId,method,args,deposit=0n){
+ const r=await who.signAndSendTransaction({receiverId,actions:[transactions.functionCall(method,args,100_000_000_000_000n,deposit)],waitUntil:"FINAL",throwOnFailure:true});
+ txs.push({method,hash:r.transaction.hash,signer:who.accountId});
+ return r.status.SuccessValue ? JSON.parse(Buffer.from(r.status.SuccessValue,"base64").toString()) : undefined;
+}
+const now=async()=>Number(BigInt((await rpc.block({finality:"final"})).header.timestamp_nanosec)/1_000_000_000n);
+const terms="Synthetic workshop. One follow-up session included.\n\nReference: "+randomBytes(32).toString("hex");
+const commitment=createHash("sha256").update(terms).digest("hex");
+const time=await now();
+const id=await send(merchant,escrow,"create_booking",{terms_commitment:commitment,fund_until:String(time+55),service_end:String(time+65),shares:[{buyer:buyer.accountId,amount:"1"}]},15_000_000_000_000_000_000_000n);
+await send(buyer,escrow,"accept",{id,index:0,terms_commitment:commitment});
+const accepted=await send(buyer,token,"ft_transfer_call",{receiver_id:escrow,amount:"1",msg:JSON.stringify({booking:id,position:0})},1n);
+if(accepted!=="1")throw Error("Contribution rejected.");
+await send(merchant,escrow,"capture",{id});
+console.log("Captured synthetic evidence booking",id);
+while(await now()<time+65) await new Promise(resolve=>setTimeout(resolve,3000));
+await send(buyer,escrow,"open_dispute",{id,index:0});
+await writeFile("docs/near/testnet-evidence-case.json",JSON.stringify({id,terms,escrow,merchant:ids[0],buyer:ids[1],transactions:txs},null,2));
+console.log("Opened evidence booking",id);

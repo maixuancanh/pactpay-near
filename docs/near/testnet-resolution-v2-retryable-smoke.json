@@ -1,0 +1,78 @@
+{
+  "network": "testnet",
+  "escrow": "escrow-v2.pactpay-530c506b.testnet",
+  "token": "token.pactpay-530c506b.testnet",
+  "id": 1,
+  "synthetic": true,
+  "signing": "script",
+  "interim": {
+    "funded": "20",
+    "unallocated": "0",
+    "retained": "8",
+    "available": "0",
+    "pending": "0",
+    "paid": "12"
+  },
+  "final": {
+    "funded": "20",
+    "unallocated": "0",
+    "retained": "0",
+    "available": "0",
+    "pending": "0",
+    "paid": "20"
+  },
+  "transactions": {
+    "seed": {
+      "hash": "GY3F2X8xgzBEJfe2ng67gF2A7KrPQW89S9yNFG8yhQqZ",
+      "signer": "pactpay-530c506b.testnet"
+    },
+    "create": {
+      "hash": "2emxmtFsug2HmFTCvWkyx5DgUCEj5W7G8VCZkvKj2Ukk",
+      "signer": "pactpay-530c506b.testnet"
+    },
+    "accept": {
+      "hash": "E2JV8bYQSEYiUNQGK9t1dxnM9cyBViMoidZto398ossS",
+      "signer": "b05bfd.pactpay-530c506b.testnet"
+    },
+    "contribute": {
+      "hash": "Ejh5q6cNeSErh8qx5XCTS9igURHNwWwGegFPqaqpwXNg",
+      "signer": "b05bfd.pactpay-530c506b.testnet"
+    },
+    "capture": {
+      "hash": "A75aTPij6zWuwVDqBM3r25WCdcmuxA3bLno8Zk6DoFRQ",
+      "signer": "pactpay-530c506b.testnet"
+    },
+    "dispute": {
+      "hash": "8rANmwdSvCijk9gUcLHK5kvgbEYKKZVDtqi4UMjid6C3",
+      "signer": "b05bfd.pactpay-530c506b.testnet"
+    },
+    "commit": {
+      "hash": "GK1iT3vzPv78adCmrnrMVxMAQmYWGRwyrq2s3iw22Ljd",
+      "signer": "pactpay-530c506b.testnet"
+    },
+    "proposal": {
+      "hash": "5Y7HN22GWPV3xvN3UwcTAw5e6rUEb4F9W3vGZxmZhiXz",
+      "signer": "pactpay-530c506b.testnet"
+    },
+    "approve": {
+      "hash": "4xSkrmUAQg5SgmaG6MfuoFDDm8KZ5jwjQMSA6yTmY9Dm",
+      "signer": "b05bfd.pactpay-530c506b.testnet"
+    },
+    "claim_12": {
+      "hash": "9N6exHBsUizSDnm658d1BvEXdEq1cNv73gtBgK6ugg4a",
+      "signer": "pactpay-530c506b.testnet"
+    },
+    "submit": {
+      "hash": "6e67sZoScMNDycvAJCUTvfEVuQpANMDgg8X5DURAXMGb",
+      "signer": "pactpay-530c506b.testnet"
+    },
+    "confirm": {
+      "hash": "9d3U2QMR88WpK81VTu5qnk3HaUsfMvgJVJNUsxsEMyY9",
+      "signer": "b05bfd.pactpay-530c506b.testnet"
+    },
+    "claim_8": {
+      "hash": "AhnzCBRotSGohi1Mi2hBYaHdicmbkD5Dikaf5pURi6R4",
+      "signer": "pactpay-530c506b.testnet"
+    }
+  }
+}

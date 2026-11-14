@@ -1,0 +1,54 @@
+{
+  "schema": "pactpay.resolution-proof.v2",
+  "network": "testnet",
+  "escrow": "escrow-v2.pactpay-530c506b.testnet",
+  "contractVersion": 2,
+  "proposal": {
+    "schema": "pactpay.resolution.v2",
+    "network": "testnet",
+    "escrow": "escrow-v2.pactpay-530c506b.testnet",
+    "booking": "0",
+    "position": "0",
+    "version": "1",
+    "buyer": "b05bfd.pactpay-530c506b.testnet",
+    "merchant": "pactpay-530c506b.testnet",
+    "token": "token.pactpay-530c506b.testnet",
+    "termsCommitment": "da6f664dbed60f4fea6f747df56140fd222159dffc883b2c7a67d38fa3642d1c",
+    "evidenceRoot": "c4fbd3dc8096e69c289be46c7a4d6482b78e1c94f71f8fa013c3e7898b552a67",
+    "privateTermsCommitment": "259f9eef9132a87c5326a1f0d9a2587cdc1e78bf403db778caef59b062960dee",
+    "assessmentDigest": null,
+    "immediateBuyer": "0",
+    "immediateMerchant": "12",
+    "retained": "8",
+    "successBuyer": "0",
+    "successMerchant": "8",
+    "fallbackBuyer": "5",
+    "fallbackMerchant": "3",
+    "acceptBy": "1794657593",
+    "deliverBy": "1794657773",
+    "reviewUntil": "1794657953",
+    "salt": "34fba9db2a080c22b20dac323aa4f4261ba36d26a8c070c57e75f76ef10b7e49"
+  },
+  "digest": "474b27997e757d876f937a529add5f7094fad78ee15bef66c6adbf2fec3de1f6",
+  "codeHash": "3x6MMN9aEbTioxBmc5g2Us2rM1UJga9ECpT7nLrSRVjp",
+  "receipts": {
+    "proposal": {
+      "hash": "VaWUdGhWzvhLZrTb3asTfotkqGNdhE6R22jgCFK7RCj",
+      "signer": "pactpay-530c506b.testnet"
+    },
+    "approval": {
+      "hash": "4h7rsHZfUFSfzWR1NcQktH4sTdEA9HzkgZbKSCZKDCnQ",
+      "signer": "b05bfd.pactpay-530c506b.testnet"
+    },
+    "claims": [
+      {
+        "hash": "ChA1AHphcKSkDN4pz63Tq8NJHaSUNgt1zDKcTmEUUkjY",
+        "signer": "pactpay-530c506b.testnet"
+      },
+      {
+        "hash": "2BxkrhJ3FUXUY4JSaJEpjr7xie3YZZ5aAUzgBzQRtPu6",
+        "signer": "pactpay-530c506b.testnet"
+      }
+    ]
+  }
+}

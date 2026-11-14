@@ -1,0 +1,166 @@
+/* NEAR panels use PactPay's existing portal and workspace styles. */
+body:has(.near-app) { margin: 0; }
+.near-workspace { scroll-margin-top: 96px; }
+.near-account-menu { position: relative; }
+.near-account-menu > summary { display: grid; place-items: center; width: 44px; height: 44px; border: 2px solid #111; border-radius: 50%; background: #e9ddff; cursor: pointer; list-style: none; }
+.near-account-menu > summary::-webkit-details-marker { display: none; }
+.near-account-menu > summary img { border-radius: 50%; object-fit: cover; }
+.near-account-options { position: absolute; inset: calc(100% + 10px) 0 auto auto; width: min(270px, calc(100vw - 32px)); display: grid; gap: 10px; overflow-wrap: anywhere; }
+.near-workspace .pd-page-heading h2 { font-size: clamp(30px, 4vw, 48px); margin: 0; }
+.near-landing-details .near-landing-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.near-private-dispute { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); align-items: center; gap: clamp(20px, 5vw, 64px); }
+.near-private-dispute > img { width: 100%; max-width: 420px; height: auto; margin-inline: auto; }
+.near-private-dispute ul { padding-inline-start: 1.25em; line-height: 1.6; }
+.near-private-dispute li + li { margin-top: 10px; }
+.near-flow-switch { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0 0 16px; }
+.near-flow-switch button { font: inherit; font-weight: 700; border: 1px solid #1b1530; border-radius: 999px; background: white; color: #1b1530; padding: 10px 16px; cursor: pointer; }
+.near-flow-switch button[aria-pressed="true"] { background: #ddd0ff; box-shadow: 0 3px 0 #1b1530; }
+.near-flow-board { display: grid; align-items: center; gap: clamp(12px, 2vw, 24px); border: 2px solid #111; border-radius: 24px; padding: clamp(16px, 3vw, 32px); background: #fff; box-shadow: 5px 6px 0 #111; }
+.near-outcome-flow { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.4fr) auto minmax(0, 1.4fr); }
+.near-flow-node { align-self: stretch; display: grid; align-content: start; justify-items: center; text-align: center; gap: 8px; padding: 14px; background: #f0eaff; border-radius: 16px; }
+.near-flow-node:first-child { background: #e7f8ec; }
+.near-flow-node:last-child { background: #e7f4ff; }
+.near-flow-node img { max-width: 100%; object-fit: contain; }
+.near-flow-node h3, .near-flow-node p, .near-flow-summary { margin: 0; }
+.near-flow-board p { line-height: 1.5; }
+.near-flow-arrow { color: #5d4083; }
+.near-workshop-flow { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+.near-flow-buyers, .near-flow-totals { display: grid; gap: 8px; }
+.near-flow-buyer, .near-flow-total { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 12px; background: #f0eaff; }
+.near-flow-buyer img { border-radius: 50%; }
+.near-flow-total { background: #e7f8ec; }
+.near-flow-total img { width: 48px; height: 44px; object-fit: contain; }
+.near-flow-buyer span, .near-flow-total span { display: block; font-size: .9rem; }
+.near-flow-summary { grid-column: 1 / -1; border-top: 1px solid #ddd3ea; padding-top: 14px; }
+.near-flow-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-top: 24px; }
+.near-flow-actions a { display: inline-flex; align-items: center; gap: 6px; }
+.near-flow-enter { display: block; animation: near-flow-enter 280ms ease-out both; }
+.near-flow-node.near-flow-enter { display: grid; }
+@keyframes near-flow-enter {
+  from { opacity: .45; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@media (max-width: 720px) {
+  .near-landing-details .near-landing-steps, .near-private-dispute { grid-template-columns: 1fr; }
+  .near-private-dispute > img { max-width: 260px; }
+  .near-outcome-flow, .near-workshop-flow { grid-template-columns: 1fr; }
+  .near-flow-arrow { justify-self: center; transform: rotate(90deg); }
+}
+.near-app .near-workspace .pp-panel { margin-bottom: 20px; }
+.near-app .near-workspace .pp-panel h2 { margin: 0 0 10px; }
+.near-workspace-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.near-workspace-tools button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 16px; border: 1px solid #68617a; border-radius: 999px; background: #fff; color: #211932; font: inherit; font-weight: 700; cursor: pointer; }
+.near-workspace-tools button[aria-pressed="true"] { border-color: #211932; background: #e9ddff; }
+.near-open-booking { display: grid; justify-items: start; gap: 16px; }
+.near-open-booking p { margin: 0; line-height: 1.5; }
+.near-app .near-open-booking:has(.near-lookup-actions) {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .85fr);
+  align-items: start; justify-items: stretch; gap: 28px;
+}
+.near-lookup-main { display: grid; gap: 20px; align-content: start; min-width: 0; }
+.near-app .near-lookup { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; margin: 0; }
+.near-app .near-lookup input { height: 52px; background: #f6f8fc; font-variant-numeric: tabular-nums; }
+.near-app .near-lookup .pp-primary { min-height: 52px; }
+.near-lookup-actions { display: grid; gap: 9px; width: auto; min-width: 0; }
+.near-app .near-lookup-shortcut {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px;
+  padding: 12px 14px; min-height: 60px; border: 1px solid #d4deeb; border-radius: 12px;
+  color: #151823; background: #f6f8fc; text-decoration: none;
+}
+.near-app .near-lookup-shortcut:hover { background: #eee8fa; border-color: #a993c6; }
+.near-app .near-lookup-shortcut:focus-visible { outline: 2px solid #543b7c; outline-offset: 2px; }
+.near-lookup-shortcut span { display: grid; gap: 3px; }
+.near-lookup-shortcut strong { font-size: 14px; line-height: 1.3; }
+.near-lookup-shortcut small { color: #4c596f; font-size: 12px; line-height: 1.35; }
+@media (max-width: 760px) {
+  .near-app .near-open-booking:has(.near-lookup-actions) { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+}
+@media (max-width: 420px) {
+  .near-app .near-lookup { grid-template-columns: minmax(0, 1fr); }
+}
+.near-workspace .near-terms h2 { display: flex; align-items: center; gap: 9px; }
+.near-terms-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.near-create-dates { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr)); gap: 12px; }
+.near-create form > button { align-self: start; }
+.near-intents .pp-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); align-items: end; }
+.near-intents .pp-form > button { justify-self: start; }
+.near-app .near-terms { margin-block: 18px; }
+.near-terms .pp-secondary { justify-self: start; }
+.near-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; }
+.near-app .near-card { background: #f5f9ff; border-color: #dfeaf8; margin: 0; min-width: 0; }
+.near-booking { display: grid; gap: 18px; font-variant-numeric: tabular-nums; }
+.near-booking-header, .near-booking-title, .near-booking-tools, .near-booking-shares-heading {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px;
+}
+.near-booking-header, .near-booking-shares-heading { justify-content: space-between; }
+.near-app .near-workspace .near-booking-title h2 { margin: 0; font-size: clamp(22px, 3vw, 30px); text-wrap: balance; }
+.near-app .near-booking-tools .pp-secondary {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: 44px; padding: 8px 13px; border: 1px solid #b9c8de; border-radius: 10px; box-shadow: none;
+}
+.near-app .near-booking-tools .pp-secondary:hover:not(:disabled) { background: #f0eaff; }
+.near-booking-overview { border: 1px solid #dfeaf8; border-radius: 14px; overflow: hidden; }
+.near-booking-stats, .near-booking-details { display: grid; margin: 0; }
+.near-booking-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); background: #eef6ff; }
+.near-booking-stats > div { min-width: 0; padding: 12px clamp(10px, 2vw, 20px); }
+.near-booking-stats > div + div { border-inline-start: 1px solid #dfeaf8; }
+.near-booking dt { color: #526175; font-size: 12px; line-height: 1.35; }
+.near-booking dd { margin: 4px 0 0; overflow-wrap: anywhere; }
+.near-booking-stats dd, .near-share-status strong { font: 700 clamp(17px, 2.2vw, 25px)/1.2 'Space Grotesk', sans-serif; }
+.near-booking-stats small, .near-share-status small, .near-share-transfer small { font-size: .68em; }
+.near-booking-details { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; border-top: 1px solid #dfeaf8; padding: 12px 16px; }
+.near-booking-details dd { font-size: 13px; }
+.near-booking-shares-heading h3 { margin: 0; font-size: 18px; }
+.near-booking-shares { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.near-app .near-booking-shares > .near-card { padding: 14px 16px; border-radius: 14px; }
+.near-share-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px 12px; }
+.near-share-header h4 { margin: 0 0 4px; }
+.near-share-header code { font-size: 12px; color: #526175; }
+.near-share-status { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; text-align: right; gap: 6px 10px; }
+.near-share-status strong { overflow-wrap: anywhere; min-width: 0; }
+.near-share-transfers { list-style: none; margin: 10px 0 0; padding: 0; }
+.near-share-transfer {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, max-content) minmax(116px, max-content);
+  align-items: center; gap: 6px 12px; padding: 8px 0; border-top: 1px solid #dfeaf8; font-size: 13px;
+}
+.near-share-transfer > strong { overflow-wrap: anywhere; text-align: right; }
+.near-transfer-status { justify-self: end; color: #526175; text-align: right; }
+.near-transfer-received { color: #25623f; }
+.near-share-transfer > button { grid-column: 1 / -1; justify-self: end; }
+@media (max-width: 520px) {
+  .near-app .near-workspace .near-booking { padding: 14px; gap: 14px; }
+  .near-booking-tools { width: 100%; }
+  .near-booking-tools > button { flex: 1 1 auto; }
+  .near-booking-stats > div { display: flex; flex-direction: column; justify-content: space-between; }
+  .near-booking-stats dd small { display: block; }
+  .near-booking-details { grid-template-columns: minmax(0, 1fr); }
+  .near-share-header { flex-wrap: wrap; }
+  .near-share-status { justify-content: flex-start; text-align: left; }
+  .near-share-transfer { grid-template-columns: minmax(0, 1fr) minmax(0, max-content); }
+  .near-transfer-status { grid-column: 1 / -1; }
+}
+.near-card:has(.near-dispute) { background: #fff8ee; border-color: #e8dfbd; }
+.near-card label { display: grid; gap: 6px; margin-block: 10px; }
+.near-card input { width: 100%; min-width: 0; padding: 10px; border: 1px solid #c7d7e9; border-radius: 10px; font: inherit; }
+.near-card button { margin: 3px 6px 3px 0; }
+.near-card h4 { margin-block: 16px 8px; }
+.near-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 12px; margin-block: 16px; }
+.near-summary > div { background: #eef6ff; border-radius: 14px; padding: 13px 15px; }
+.near-summary span, .near-summary strong { display: block; }
+.near-summary span { color: #526175; font-size: 12px; }
+.near-summary strong { font: 700 22px/1.5 'Space Grotesk', sans-serif; }
+.near-app code { overflow-wrap: anywhere; }
+.near-app .pp-badge { display: inline-flex; align-items: center; gap: 5px; }
+.near-app .near-dispute { background: #ffedcf; color: #694211; }
+.near-app .near-footer { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.near-footer img { object-fit: contain; }
+
+.near-evidence { margin-block: 12px; padding-block: 10px; border-block-start: 1px solid #dfeaf8; }
+.near-opened pre { white-space: pre-wrap; overflow-wrap: anywhere; background: white; border-radius: 8px; padding: 10px; }
+
+.near-recovery-code { display: grid; gap: 8px; margin-block: 14px; padding: 14px; border: 1px solid #c5d7ef; border-radius: 12px; background: #eff6ff; }
+.near-recovery-code p { margin: 0; color: #42536c; }
+.near-recovery-value { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.near-recovery-value code { flex: 1 1 230px; min-width: 0; padding: 10px; border-radius: 8px; background: white; overflow-wrap: anywhere; user-select: all; }
+.near-app .near-recovery-value button { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin: 0; }
+.near-recovery-code [role=status]:empty { display: none; }

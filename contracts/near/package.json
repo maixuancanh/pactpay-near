@@ -1,0 +1,8 @@
+{
+  "name": "pactpay-near-sandbox-tests",
+  "private": true,
+  "devDependencies": {
+    "near-sandbox": "0.3.5",
+    "near-workspaces": "5.0.0"
+  }
+}

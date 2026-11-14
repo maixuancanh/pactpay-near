@@ -1,0 +1,47 @@
+{
+  "name": "pactpay-near",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5178 --strictPort",
+    "build": "tsc -b && vite build",
+    "test:unit": "vitest run",
+    "test:near": "vitest run src/near"
+  },
+  "dependencies": {
+    "@auth0/auth0-spa-js": "2.30.0",
+    "@hot-labs/near-connect": "0.12.0",
+    "@near-js/transactions": "2.5.1",
+    "@nearai/inference-sdk": "0.3.0",
+    "@radix-ui/react-dialog": "1.1.15",
+    "aws4fetch": "1.0.20",
+    "borsh": "1.0.0",
+    "jose": "6.2.13",
+    "lucide-react": "0.468.0",
+    "pdfjs-dist": "5.4.624",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "tesseract.js": "7.0.0",
+    "viem": "2.57.14",
+    "@near-js/providers": "2.5.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@types/react": "19.1.16",
+    "@types/react-dom": "19.1.9",
+    "@vitejs/plugin-react": "4.7.0",
+    "near-api-js": "6.5.1",
+    "prettier": "3.6.2",
+    "prettier-plugin-solidity": "1.4.3",
+    "typescript": "5.9.3",
+    "vite": "6.3.6",
+    "vitest": "3.2.4"
+  },
+  "overrides": {
+    "ws": "8.21.0",
+    "cipher-base": "1.0.7",
+    "pbkdf2": "3.1.7",
+    "sha.js": "2.4.12",
+    "webpack": "5.112.2"
+  }
+}

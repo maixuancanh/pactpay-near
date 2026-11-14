@@ -1,0 +1,10 @@
+{
+  "network": "testnet",
+  "escrow": "escrow-v2.pactpay-530c506b.testnet",
+  "synthetic": true,
+  "signing": "script",
+  "asset": "claimguard-DUet9sHl.js",
+  "completion": "06f8a948941d4c208884df7cb1eb0f9a",
+  "transcriptStatus": "encrypted-transcript-verified",
+  "plaintextStatus": "unavailable"
+}

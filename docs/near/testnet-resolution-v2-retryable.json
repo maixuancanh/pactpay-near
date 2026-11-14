@@ -1,0 +1,11 @@
+{
+  "network": "testnet",
+  "escrow": "escrow-v2.pactpay-530c506b.testnet",
+  "token": "token.pactpay-530c506b.testnet",
+  "transactions": {
+    "token.pactpay-530c506b.testnet": "6KP6ZjVqS8pEwXbiM9wApit8TDzzHwk13K7nQtTraMbs",
+    "escrow-v2.pactpay-530c506b.testnet": "83ySFiLns3MsNbtv8RLfzdTf3vuQPs4gd8Mog2LhKEUF",
+    "enable": "47htmke6EuFAPi7k6Mw2jv86uziAoLmNr7ZChjNFXaMo"
+  },
+  "booking0Preserved": true
+}

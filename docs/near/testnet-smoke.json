@@ -1,0 +1,195 @@
+{
+  "network": "testnet",
+  "escrow": "escrow.pactpay-530c506b.testnet",
+  "token": "token.pactpay-530c506b.testnet",
+  "merchant": "pactpay-530c506b.testnet",
+  "transactions": [
+    {
+      "method": "create_buyer",
+      "hash": "5dx4uc953XrXes8wvmRcLww6a2gWgZUAbGf7pvK78uks",
+      "signer": "pactpay-530c506b.testnet",
+      "receiver": "b05bfd.pactpay-530c506b.testnet"
+    },
+    {
+      "method": "storage_deposit",
+      "hash": "GkWJUxS7Fu2PT3L2m6VQVy1cEgeEuKFfB6CcTHeEF1K3",
+      "signer": "pactpay-530c506b.testnet",
+      "receiver": "token.pactpay-530c506b.testnet"
+    },
+    {
+      "method": "ft_transfer",
+      "hash": "BkLT87WQBh1pxT5hQLMzDEYAKB6V1BCfr4YpFgVnwwLb",
+      "signer": "pactpay-530c506b.testnet",
+      "receiver": "token.pactpay-530c506b.testnet"
+    },
+    {
+      "method": "create_buyer",
+      "hash": "DShnX6eTMtUvfJvdVseb4B5oUEzHNHMrKGan3cbftEEd",
+      "signer": "pactpay-530c506b.testnet",
+      "receiver": "b15bfd.pactpay-530c506b.testnet"
+    },
+    {
+      "method": "storage_deposit",
+      "hash": "H2CeioHuGMYNckVKtyWsaoB2S2csWLMU7c85AFLwiccw",
+      "signer": "pactpay-530c506b.testnet",
+      "receiver": "token.pactpay-530c506b.testnet"
+    },
+    {
+      "method": "ft_transfer",
+      "hash": "8kRKwNnRvsUPHMJdF8PYsQbtcX8B5XC8VGKYyUki6noX",
+      "signer": "pactpay-530c506b.testnet",
+      "receiver": "token.pactpay-530c506b.testnet"
+    },
+    {
+      "method": "create_booking",
+      "hash": "AbJ93PagXF2WFS5mjuC5LHP6JSz9wUuo8c98YsQi74zH",
+      "signer": "pactpay-530c506b.testnet",
+      "receiver": "escrow.pactpay-530c506b.testnet"
+    },
+    {
+      "method": "accept",
+      "hash": "9rFgY98b61WmZqmc48N4caFY9xXBzsxMVowRiVn3JzJ7",
+      "signer": "b05bfd.pactpay-530c506b.testnet",
+      "receiver": "escrow.pactpay-530c506b.testnet"
+    },
+    {
+      "method": "ft_transfer_call",
+      "hash": "Fww512nuRtjcnwQo9mkjjEjdsxGeURfT7nqNHgJGSf7W",
+      "signer": "b05bfd.pactpay-530c506b.testnet",
+      "receiver": "token.pactpay-530c506b.testnet"
+    },
+    {
+      "method": "accept",
+      "hash": "G3ZDZmEr9SJPLVk9p8bqJ8RQsWnUgE8qLNg5jVahajXA",
+      "signer": "b15bfd.pactpay-530c506b.testnet",
+      "receiver": "escrow.pactpay-530c506b.testnet"
+    },
+    {
+      "method": "ft_transfer_call",
+      "hash": "HLszqtZkT3G7u8W4YRMt1yzRDhvAdTC9LaPaAe1vBbQm",
+      "signer": "b15bfd.pactpay-530c506b.testnet",
+      "receiver": "token.pactpay-530c506b.testnet"
+    },
+    {
+      "method": "capture",
+      "hash": "95EFPfoJMLkbdvQ84wmad4KEfsVUhzUKasXaKY81mAC9",
+      "signer": "pactpay-530c506b.testnet",
+      "receiver": "escrow.pactpay-530c506b.testnet"
+    },
+    {
+      "method": "open_dispute",
+      "hash": "EzJ5cwp4DaNrNvZZgRYLJyAqognRJ46MJdbSkzXxi7zX",
+      "signer": "b15bfd.pactpay-530c506b.testnet",
+      "receiver": "escrow.pactpay-530c506b.testnet"
+    },
+    {
+      "method": "confirm_completion",
+      "hash": "6huim65VmpAo3jH3kjtW4ZzQVNjzHxM944dLDvtJaDBg",
+      "signer": "b05bfd.pactpay-530c506b.testnet",
+      "receiver": "escrow.pactpay-530c506b.testnet"
+    },
+    {
+      "method": "claim",
+      "hash": "EDiLCK53gQUD6qgk9EnnPBQK9Q5sduab6FxtZTfKUYNc",
+      "signer": "pactpay-530c506b.testnet",
+      "receiver": "escrow.pactpay-530c506b.testnet"
+    },
+    {
+      "method": "revise_evidence",
+      "hash": "EZUf5pxzX5eiFUSpfUdSzkefGG9r8wyS2GSSeQYpYNF8",
+      "signer": "b15bfd.pactpay-530c506b.testnet",
+      "receiver": "escrow.pactpay-530c506b.testnet"
+    },
+    {
+      "method": "approve_resolution",
+      "hash": "EPxnnQr8w7Tucs5zn4HuprVxJSWN52mQBBN5aSkQFEp2",
+      "signer": "b15bfd.pactpay-530c506b.testnet",
+      "receiver": "escrow.pactpay-530c506b.testnet"
+    },
+    {
+      "method": "approve_resolution",
+      "hash": "BTDJHQ1cdxHJuKcYX2i8Ji8PxM9yHQLe9SKpYyVQXhq9",
+      "signer": "pactpay-530c506b.testnet",
+      "receiver": "escrow.pactpay-530c506b.testnet"
+    },
+    {
+      "method": "claim",
+      "hash": "9KUta3apVjVekXK5tJs8gqRuApQxU9QiSwMN2Jq6YjTo",
+      "signer": "b15bfd.pactpay-530c506b.testnet",
+      "receiver": "escrow.pactpay-530c506b.testnet"
+    },
+    {
+      "method": "claim",
+      "hash": "b38NRY5XYKg1QsZBAXcfA1Ev8dfscrkzVvFrzRdgBvy",
+      "signer": "pactpay-530c506b.testnet",
+      "receiver": "escrow.pactpay-530c506b.testnet"
+    }
+  ],
+  "buyers": [
+    "b05bfd.pactpay-530c506b.testnet",
+    "b15bfd.pactpay-530c506b.testnet"
+  ],
+  "booking": 0,
+  "terms": "Synthetic testnet workshop terms. Confirmation authorizes payout.\n\nReference: 43f45049a61ba8f734919d2964b0b6ecc3e3345951c3ab5770389077760d68f2",
+  "result": {
+    "merchantIncrease": "92",
+    "buyerRefund": "8",
+    "finalBooking": {
+      "merchant": "pactpay-530c506b.testnet",
+      "terms_commitment": "ee1e1f65b869d469352354399598fab0ba84ec3b438897acf317cbd86200c4b9",
+      "fund_until": "1794566345",
+      "service_end": "1794566360",
+      "captured": true,
+      "positions": [
+        {
+          "buyer": "b05bfd.pactpay-530c506b.testnet",
+          "share": "80",
+          "accepted": true,
+          "funded": true,
+          "dispute_until": null,
+          "extended": false,
+          "extension_approvals": 0,
+          "evidence_revision": "0",
+          "evidence_commitment": null,
+          "proposal_version": "0",
+          "proposal": null,
+          "allocation": [
+            "0",
+            "80"
+          ],
+          "claims": [
+            "Unclaimed",
+            "Paid"
+          ]
+        },
+        {
+          "buyer": "b15bfd.pactpay-530c506b.testnet",
+          "share": "20",
+          "accepted": true,
+          "funded": true,
+          "dispute_until": "1795171167",
+          "extended": false,
+          "extension_approvals": 0,
+          "evidence_revision": "1",
+          "evidence_commitment": "21bcab2872287bd59c121247d50ed6a523ab9cfae31f97e499363022a2a77492",
+          "proposal_version": "2",
+          "proposal": {
+            "refund": "8",
+            "payout": "12",
+            "expires": "1795171167",
+            "revision": "1",
+            "approvals": 3
+          },
+          "allocation": [
+            "8",
+            "12"
+          ],
+          "claims": [
+            "Paid",
+            "Paid"
+          ]
+        }
+      ]
+    }
+  }
+}

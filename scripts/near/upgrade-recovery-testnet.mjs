@@ -1,0 +1,17 @@
+import assert from "node:assert/strict";
+import {readFile,writeFile} from "node:fs/promises";
+import {Account,KeyPairSigner,providers,transactions} from "near-api-js";
+const key=JSON.parse(await readFile(".near-testnet/deploy-key.json"));
+assert.match(key.accountId,/^pactpay-[a-f0-9]{8}\.testnet$/);
+const escrow="escrow."+key.accountId;
+const rpc=new providers.JsonRpcProvider({url:"https://test.rpc.fastnear.com"});
+const signer=new Account(escrow,rpc,KeyPairSigner.fromSecretKey(key.secretKey));
+const view=(method,args={})=>rpc.callFunction(escrow,method,args,{finality:"final"});
+const before=await Promise.all([view("get_booking",{id:0}),view("get_booking",{id:1}),view("get_token")]);
+assert.ok(before[0] && before[1]);
+const wasm=await readFile("contracts/near/target/wasm32-unknown-unknown/release/pactpay_escrow.wasm");
+const result=await signer.signAndSendTransaction({receiverId:escrow,actions:[transactions.deployContract(wasm)],waitUntil:"FINAL",throwOnFailure:true});
+assert.deepEqual(await Promise.all([view("get_booking",{id:0}),view("get_booking",{id:1}),view("get_token")]),before);
+const report={network:"testnet",escrow,hash:result.transaction.hash,bookingsPreserved:[0,1]};
+await writeFile("docs/near/testnet-recovery-deployment.json",JSON.stringify(report,null,2));
+console.log(report);

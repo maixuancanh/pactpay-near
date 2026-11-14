@@ -1,0 +1,55 @@
+{
+  "network": "testnet",
+  "deployer": "pactpay-530c506b.testnet",
+  "token": "token.pactpay-530c506b.testnet",
+  "escrow": "escrow.pactpay-530c506b.testnet",
+  "transactions": {
+    "token_account": {
+      "hash": "7yEzuAm6vYUfZnYnnWo7tBYC9eS5xizm8LVk4WpMkjSW",
+      "signer": "pactpay-530c506b.testnet",
+      "receiver": "token.pactpay-530c506b.testnet"
+    },
+    "token_deploy_init": {
+      "hash": "Hp2veUFe9p5sG1W9d6LXwH9gik8FK2PzrSqrEhiFkCvS",
+      "signer": "token.pactpay-530c506b.testnet",
+      "receiver": "token.pactpay-530c506b.testnet"
+    },
+    "escrow_account": {
+      "hash": "DUNpSXi1iUPHcY3pGcepWAakSTt4NuHQYSNCALxbmsNV",
+      "signer": "pactpay-530c506b.testnet",
+      "receiver": "escrow.pactpay-530c506b.testnet"
+    },
+    "escrow_storage_funding": {
+      "hash": "GXcrLtVXfhbbLKSZcfBi3SknJrDJUDMLbNTPYJy5WizQ",
+      "signer": "pactpay-530c506b.testnet",
+      "receiver": "escrow.pactpay-530c506b.testnet"
+    },
+    "escrow_deploy_init": {
+      "hash": "HtL3c2eoRtMnSLp8ohFpPqpDmEkCFgeSi86mpkhFwoYD",
+      "signer": "escrow.pactpay-530c506b.testnet",
+      "receiver": "escrow.pactpay-530c506b.testnet"
+    },
+    "escrow_token_registration": {
+      "hash": "8zP4zS8mhGb1W4FvewYuKJWHSjy4PY9iCh9LqoENGr5P",
+      "signer": "pactpay-530c506b.testnet",
+      "receiver": "token.pactpay-530c506b.testnet"
+    }
+  },
+  "verified": {
+    "tokenMetadata": {
+      "spec": "ft-1.0.0",
+      "name": "PactPay Demo Token",
+      "symbol": "PDEMO",
+      "icon": null,
+      "reference": null,
+      "reference_hash": null,
+      "decimals": 0
+    },
+    "escrowRegistration": {
+      "total": "1250000000000000000000",
+      "available": "0"
+    },
+    "escrowCodeHash": "TcMFtD6e2pLNnuq2YSiogmkrpmwPLCNxARpLzAM4TKf",
+    "tokenCodeHash": "2Qm1j6uBhSWairV32ULKmWLRXSEyrZQ7KEBnip3UMgmc"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "network": "testnet",
+  "escrow": "escrow-v2.example.testnet",
+  "booking": "1",
+  "position": "0",
+  "nonce": "synthetic-case-a",
+  "terms": "Deliver eight chairs by noon.",
+  "sources": [
+    {"id": "synthetic-source-a", "paragraphs": ["The delivery note records six chairs.", "The invoice lists eight chairs."]}
+  ]
+}
