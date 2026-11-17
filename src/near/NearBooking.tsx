@@ -3,6 +3,7 @@ import type {FormEvent} from "react";
 import {NearConnector} from "@hot-labs/near-connect";
 import {chainTime, commitment, DAY, escrow as legacyEscrow, finalTransaction, parseBookingId, rpcUrl, view} from "./chain";
 import {v2Escrow} from "./agreements/chain-v2";
+import {queueCaseReference, retryCaseReferences} from "./agreements/transaction-journal";
 import ResolutionWorkspace from "./agreements/ResolutionWorkspace";
 import type {Booking, Position, Remedy} from "./chain";
 import {Wallet, ShieldCheck, ArrowRight, ArrowUpRight, UserRound, X, Search, Plus, FileText, Layers, CirclePlay, RefreshCw, Download} from "lucide-react";
@@ -14,7 +15,9 @@ import "../commerce/workspace-theme.css";
 import EvidencePanel from "./EvidencePanel";
 import IntentsQuote from "./IntentsQuote";
 import NearLandingDetails from "./NearLandingDetails";
-import {profileRequest, useNearSocialLogin} from "./NearSocialLogin";
+import {profileRequest, readSocialMpcAccount, signSocialBooking, useNearSocialLogin} from "./NearSocialLogin";
+import {invitationUrl, needsInvitationReview, parseInvitation} from "./agreements/invitation";
+import {ShareInvitation} from "./agreements/ShareInvitation";
 import "./near.css";
 
 let connector: NearConnector | undefined;
@@ -30,6 +33,13 @@ const resolutionV2 = Boolean(v2Escrow && requestedEscrow === v2Escrow && v2Escro
 const escrow = resolutionV2 ? v2Escrow : (!requestedEscrow || requestedEscrow === legacyEscrow ? legacyEscrow : "");
 const claimPage = /^\/claim\/?$/.test(location.pathname);
 const workspace = claimPage || /^\/booking\/?$/.test(location.pathname);
+const sharedInvitation = (() => {
+  try {
+    return {scope: parseInvitation(initialParams, [legacyEscrow, v2Escrow]), error: ""};
+  } catch {
+    return {scope: null, error: "This booking invitation is invalid. Ask for a new link or look up the booking by ID."};
+  }
+})();
 
 function workspaceLink(path: "/booking" | "/claim", contract: string, booking?: number) {
   const params = new URLSearchParams();
@@ -52,11 +62,24 @@ export default function NearBooking() {
   const [profileMode, setProfileMode] = useState(() => localStorage.getItem(profileModeKey));
   const [connectOpen, setConnectOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [workspaceView, setWorkspaceView] = useState<"booking" | "lookup" | "quote">("booking");
+  const [bookingView, setBookingView] = useState<"shares" | "terms" | "details">("shares");
+  const [shareSelection, setShareSelection] = useState<{booking: number; index: number}>();
+  const [reviewedInvitationVersion, setReviewedInvitationVersion] = useState<string>();
+  const bookingHeading = useRef<HTMLHeadingElement>(null);
+  const termsInput = useRef<HTMLTextAreaElement>(null);
+
+  function showBooking() {
+    setCreating(false);
+    setWorkspaceView("booking");
+    setBookingView("shares");
+  }
   const [sponsorAvailable, setSponsorAvailable] = useState(false);
   const avatar = useRef<HTMLElement>(null);
   const connectTrigger = useRef<HTMLButtonElement>(null);
   const social = useNearSocialLogin();
   const [linkedWallets, setLinkedWallets] = useState<string[]>([]);
+  const [socialMpc, setSocialMpc] = useState<{profile:typeof social.profile; account?:string; funded?:boolean; error?:string}>();
   const [linkStatus, setLinkStatus] = useState("");
   const [linking, setLinking] = useState(false);
   const [bookingInput, setBookingInput] = useState(initialBooking ?? "");
@@ -75,6 +98,22 @@ export default function NearBooking() {
   const account = socialActive
     ? (linkedWallets.includes(walletAccount) ? walletAccount : "")
     : walletActive ? walletAccount : "";
+  const [copiedMpc, setCopiedMpc] = useState<{address:string; message:string}>();
+  const mpcProfile = socialMpc?.profile === social.profile ? socialMpc : undefined;
+  const mpcAddress = mpcProfile?.account;
+
+  useEffect(() => {
+    if (!socialActive || !social.profile) return;
+    const controller = new AbortController();
+    const signal = AbortSignal.any([controller.signal,AbortSignal.timeout(12000)]);
+    const profile = social.profile;
+    void readSocialMpcAccount(signal).then(result => {
+      if (!controller.signal.aborted) setSocialMpc({profile,...result});
+    }).catch(() => {
+      if (!controller.signal.aborted) setSocialMpc({profile,error:"MPC account is temporarily unavailable."});
+    });
+    return () => controller.abort();
+  }, [socialActive,social.profile]);
 
   function selectProfile(mode: "wallet" | "social") {
     localStorage.setItem(profileModeKey, mode);
@@ -168,6 +207,10 @@ export default function NearBooking() {
     setLoaded({id, booking, token, time});
     setBookingInput(String(id));
     const url = new URL(location.href);
+    if (url.searchParams.get("booking") !== String(id)) {
+      url.searchParams.delete("position");
+      url.searchParams.delete("version");
+    }
     url.searchParams.set("booking", String(id));
     if (resolutionV2) url.searchParams.set("escrow",escrow);
     history.replaceState(null, "", url);
@@ -176,10 +219,31 @@ export default function NearBooking() {
 
   const openedSharedBooking = useRef(false);
   useEffect(() => {
+    if (workspace && sharedInvitation.error) {
+      setFeedback(sharedInvitation.error);
+      return;
+    }
     if (!workspace || !escrow || initialBooking === null || openedSharedBooking.current) return;
     openedSharedBooking.current = true;
-    void run(async () => { await read(parseBookingId(initialBooking)); });
+    void run(async () => {
+      const id = parseBookingId(initialBooking);
+      const booking = await read(id);
+      const scope = sharedInvitation.scope;
+      if (!scope) return;
+      if (!booking.positions[scope.position]) throw new Error("The participant share in this invitation could not be found.");
+      setShareSelection({booking: id, index: scope.position});
+    });
   }, [read, run]);
+
+  useEffect(() => {
+    if (!resolutionV2 || !workspace) return;
+    const retry = () => {
+      if (document.visibilityState === "visible") void retryCaseReferences(escrow);
+    };
+    retry();
+    const timer = window.setInterval(retry,30000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   async function reconcile(attempt: Attempt) {
     const result = await finalTransaction(attempt.hash, attempt.sender);
@@ -190,6 +254,7 @@ export default function NearBooking() {
     setPending(null);
     localStorage.removeItem(attemptKey);
     if (status.Failure !== undefined) throw new Error("Transaction failed on NEAR. Review the current booking before trying again.");
+    if (resolutionV2 && attempt.receiver === escrow) queueCaseReference(escrow,attempt);
     return status.SuccessValue;
   }
 
@@ -225,6 +290,7 @@ export default function NearBooking() {
     setPending(attempt);
     localStorage.setItem(attemptKey, JSON.stringify(attempt));
     localStorage.removeItem(unknownKey);
+    if (resolutionV2 && receiver === escrow) queueCaseReference(escrow,attempt);
     return reconcile(attempt);
   };
 
@@ -264,40 +330,65 @@ export default function NearBooking() {
       result.amount + " PDEMO delivered. You can now contribute.");
   }
 
+  const socialCreator = resolutionV2 && socialActive && !account ? mpcAddress : undefined;
+
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
-    await run(async () => {
-      const shares = String(fields.get("shares")).trim().split(/\r?\n/).map(line => {
-        const [buyer, amount, extra] = line.trim().split(/\s+/);
-        if (!buyer || !amount || !/^[1-9]\d*$/.test(amount) || extra) {
-          throw new Error("Enter one account and a positive whole token amount per line");
+    if (busy || pending || uncertain || localStorage.getItem(attemptKey) || localStorage.getItem(unknownKey)) return;
+    const popup = socialCreator ? window.open("", "_blank", "popup,width=520,height=760") : undefined;
+    if (popup === null) return setFeedback("Allow pop-ups for PactPay, then try again.");
+    try {
+      await run(async () => {
+        const shares = String(fields.get("shares")).trim().split(/\r?\n/).map(line => {
+          const [buyer, amount, extra] = line.trim().split(/\s+/);
+          if (!buyer || !amount || !/^[1-9]\d*$/.test(amount) || extra) {
+            throw new Error("Enter one account and a positive whole token amount per line");
+          }
+          return {buyer, amount};
+        });
+        if (shares.length > 32 || new Set(shares.map(s => s.buyer)).size !== shares.length ||
+            shares.some(s => s.buyer === (socialCreator ?? account) || BigInt(s.amount) >= 2n ** 128n)) {
+          throw new Error("Use up to 32 distinct buyer accounts and valid token amounts");
         }
-        return {buyer, amount};
+        const date = (name: string) => Math.floor(new Date(String(fields.get(name))).getTime() / 1000);
+        const fund = date("fund"), end = date("end");
+        if (!(fund > await chainTime() && end > fund)) throw new Error("Choose future funding and service deadlines in order");
+        if (!/(^|\n)Reference: [a-f0-9]{64}$/.test(draftTerms)) throw new Error("Add a private reference to the terms first");
+        const terms_commitment = await commitment(draftTerms);
+        const storageDeposit = resolutionV2
+          ? await view<string>(escrow,"booking_storage_deposit",{positions:shares.length})
+          : String(BigInt(512 + 512 * shares.length) * 10n ** 19n);
+        const args = {terms_commitment, fund_until: String(fund), service_end: String(end), shares};
+        let result;
+        if (socialCreator && popup) {
+          let attempt: Attempt | undefined;
+          await signSocialBooking(popup,socialCreator,escrow,args,storageDeposit,hash=>{
+            attempt = {hash,sender:socialCreator,receiver:escrow,method:"create_booking"};
+            localStorage.setItem(attemptKey,JSON.stringify(attempt));
+            setPending(attempt);
+            setLastHash(hash);
+          },()=>{
+            localStorage.removeItem(attemptKey);
+            setPending(null);
+            setLastHash("");
+          });
+          if (!attempt) throw new Error("Missing Testnet transaction reference.");
+          result = await reconcile(attempt);
+        } else {
+          result = await call(escrow,"create_booking",args,storageDeposit);
+        }
+        const id = parseBookingId(atob(result || ""));
+        await read(id);
+        setTerms(draftTerms);
+        setDraftTerms("");
+        setVerified(terms_commitment);
+        showBooking();
+        setFeedback("Booking created. Share its URL and the exact terms privately with participants.");
       });
-      if (shares.length > 32 || new Set(shares.map(s => s.buyer)).size !== shares.length ||
-          shares.some(s => s.buyer === account || BigInt(s.amount) >= 2n ** 128n)) {
-        throw new Error("Use up to 32 distinct buyer accounts and valid token amounts");
-      }
-      const date = (name: string) => Math.floor(new Date(String(fields.get(name))).getTime() / 1000);
-      const fund = date("fund"), end = date("end");
-      if (!(fund > await chainTime() && end > fund)) throw new Error("Choose future funding and service deadlines in order");
-      if (!/(^|\n)Reference: [a-f0-9]{64}$/.test(draftTerms)) throw new Error("Add a private reference to the terms first");
-      const terms_commitment = await commitment(draftTerms);
-      const storageDeposit = resolutionV2
-        ? await view<string>(escrow,"booking_storage_deposit",{positions:shares.length})
-        : String(BigInt(512 + 512 * shares.length) * 10n ** 19n);
-      const result = await call(escrow, "create_booking", {
-        terms_commitment, fund_until: String(fund), service_end: String(end), shares,
-      }, storageDeposit);
-      const id = parseBookingId(atob(result || ""));
-      await read(id);
-      setTerms(draftTerms);
-      setDraftTerms("");
-      setVerified(terms_commitment);
-      setCreating(false);
-      setFeedback("Booking created. Share its URL and the exact terms privately with participants.");
-    });
+    } finally {
+      popup?.close();
+    }
   }
 
   useEffect(() => {
@@ -353,6 +444,21 @@ export default function NearBooking() {
   const demoId = resolutionV2 ? 1 : 0;
   const total = loaded?.booking.positions.reduce((sum, p) => sum + BigInt(p.share), 0n);
   const funded = loaded?.booking.positions.reduce((sum, p) => sum + (p.funded ? BigInt(p.share) : 0n), 0n);
+  const assignedShare = loaded?.booking.positions.findIndex(position => position.buyer === account) ?? -1;
+  const selectedShare = shareSelection && shareSelection.booking === loaded?.id
+    ? shareSelection.index : Math.max(0, assignedShare);
+  const inviteScope = sharedInvitation.scope;
+  const missingInvitedShare = Boolean(loaded && inviteScope?.booking === loaded.id &&
+    !loaded.booking.positions[inviteScope.position]);
+  const invitedVersion = inviteScope && inviteScope.booking === loaded?.id && inviteScope.position === selectedShare
+    ? inviteScope.version : undefined;
+  const selectedPosition = loaded?.booking.positions[selectedShare];
+  const currentVersion = selectedPosition?.proposal_version;
+  const staleInvitation = needsInvitationReview(invitedVersion, currentVersion, reviewedInvitationVersion);
+  const shareLink = loaded && selectedPosition && (account === loaded.booking.merchant || account === selectedPosition.buyer)
+    ? invitationUrl(location.origin, {escrow, booking: loaded.id, position: selectedShare, version: selectedPosition.proposal_version})
+    : undefined;
+
   return <div className={workspace ? "pp-app pd-authenticated near-app" : "pp-app near-app"}>
     <a className="pp-skip" href="#pp-main">Skip to main content</a>
     <header className="pp-header">
@@ -381,7 +487,28 @@ export default function NearBooking() {
           <div className="pp-panel near-account-options">
             <strong>{socialActive ? social.profile?.name || "Social account" : walletAccount}</strong>
             {socialActive && social.profile?.email && <span>{social.profile.email}</span>}
-            {socialActive && account && <span>Active wallet · {account}</span>}
+            {socialActive && account && <span>Signing wallet · {account}</span>}
+            {socialActive && mpcAddress && <section className="near-mpc-account" aria-label="MPC account">
+              <div className="near-mpc-heading">
+                <strong>MPC account</strong>
+                <small>NEAR Testnet</small>
+              </div>
+              <code>{mpcAddress}</code>
+              <small>{mpcProfile?.funded ? "Testnet access key detected" : "Activates when you create a booking"}</small>
+              <button type="button" className="near-mpc-copy" onClick={async () => {
+                const address = mpcAddress;
+                try {
+                  await navigator.clipboard.writeText(address);
+                  setCopiedMpc({address,message:"Address copied."});
+                } catch {
+                  setCopiedMpc({address,message:"Copy unavailable. Select the address to copy it manually."});
+                }
+              }}>Copy address</button>
+              <span className="near-mpc-copy-status" role="status">
+                {copiedMpc?.address === mpcAddress ? copiedMpc.message : ""}
+              </span>
+            </section>}
+            {socialActive && mpcProfile?.error && <small>{mpcProfile.error}</small>}
             {socialActive && linkedWallets.length > 0 && <div>
               <strong>Linked NEAR Testnet wallets</strong>
               <ul>{linkedWallets.map(wallet => <li key={wallet}>{wallet}</li>)}</ul>
@@ -468,16 +595,22 @@ export default function NearBooking() {
         <NearLandingDetails />
       </>}
       {workspace && <div className="pd-dashboard near-workspace" id="booking-outcomes">
-        <div className="pd-page-heading"><div><h1>{claimPage ? "Claim funds" : "Group bookings"}</h1><p>{claimPage ? "Check a booking and claim an available payout or refund." : "Open an existing booking or create a new one on testnet."}</p></div>
+        <div className="pd-page-heading"><div><h1>{claimPage ? "Claim funds" : "Group bookings"}</h1>{!loaded && <p>{claimPage ? "Check a booking and claim an available payout or refund." : "Use a booking ID or create a new booking."}</p>}</div>
           <span className="pp-badge"><ShieldCheck size={15} /> NEAR testnet</span></div>
     {!escrow ? <section className="pp-panel"><h2>Escrow setup required</h2>
       <p>This workspace needs a PactPay contract on NEAR testnet before you can open a booking or connect a wallet.</p>
     </section> : <>
-      {!claimPage && <div className="near-workspace-tools" role="group" aria-label="Booking task">
-        <button type="button" disabled={busy} aria-pressed={!creating} onClick={() => setCreating(false)}><Search size={17} aria-hidden="true" /> Open booking</button>
-        <button type="button" disabled={busy} aria-pressed={creating} onClick={() => setCreating(true)}><Plus size={17} aria-hidden="true" /> Create booking</button>
-      </div>}
-      {!creating && <section className="pp-panel near-open-booking" aria-labelledby="near-open-booking">
+      <div className="near-workspace-tools" role="group" aria-label="Booking task">
+        {loaded && <button type="button" disabled={busy} aria-pressed={!creating && workspaceView === "booking"} onClick={showBooking}>Booking #{loaded.id}</button>}
+        {(!claimPage || loaded) && <button type="button" disabled={busy} aria-pressed={!creating && (workspaceView === "lookup" || (!loaded && workspaceView === "booking"))}
+          onClick={() => {setCreating(false); setWorkspaceView("lookup");}}><Search size={17} aria-hidden="true" /> Find booking</button>}
+        {!claimPage && <>
+          <button type="button" disabled={busy} aria-pressed={creating} onClick={() => setCreating(true)}><Plus size={17} aria-hidden="true" /> Create booking</button>
+          <button type="button" disabled={busy} aria-pressed={!creating && workspaceView === "quote"}
+            onClick={() => {setCreating(false); setWorkspaceView("quote");}}>Cross-chain quote</button>
+        </>}
+      </div>
+      {!creating && workspaceView !== "quote" && (!loaded || workspaceView === "lookup") && <section className="pp-panel near-open-booking" aria-labelledby="near-open-booking">
         <div className="near-lookup-main">
         <div>
           <h2 id="near-open-booking">Find a booking</h2>
@@ -485,7 +618,14 @@ export default function NearBooking() {
         </div>
         <form className="pp-form near-lookup" onSubmit={event => {
           event.preventDefault();
-          void run(async () => { setLoaded(undefined); setVerified(""); await read(parseBookingId(bookingInput)); });
+          void run(async () => {
+            const id = parseBookingId(bookingInput);
+            await read(id);
+            setVerified("");
+            setShareSelection(undefined);
+            showBooking();
+            requestAnimationFrame(() => bookingHeading.current?.focus());
+          });
         }}>
           <label>Booking ID<input value={bookingInput} placeholder="e.g. 0" required inputMode="numeric" onChange={e => setBookingInput(e.target.value)} /></label>
           <button className="pp-primary" disabled={busy}>{busy ? "Loading…" : "Load booking"} <ArrowRight size={16} aria-hidden="true" /></button>
@@ -507,7 +647,10 @@ export default function NearBooking() {
       {pending && <p role="status">Pending {pending.method} · <code>{pending.hash}</code>{" "}
         <button className="pp-secondary" disabled={busy} onClick={() => void run(async () => {
           const result = await reconcile(pending);
-          if (pending.method === "create_booking") await read(parseBookingId(atob(result || "")));
+          if (pending.method === "create_booking") {
+            await read(parseBookingId(atob(result || "")));
+            showBooking();
+          }
           else if (loaded) await read(loaded.id);
           setFeedback(pending.method === "claim" && result && atob(result) === "false"
             ? "Token transfer failed. Check token registration before claiming again."
@@ -521,34 +664,41 @@ export default function NearBooking() {
         })}>I checked my wallet</button></section>}
       {feedback && <p className="pp-note" role="status">{feedback}</p>}
       {lastHash && <p>Last transaction <code>{lastHash}</code></p>}
-      {!claimPage && (creating ? Boolean(account) : Boolean(loaded)) && <section className="pp-panel pp-form near-terms" id="booking-terms">
-        <h2><FileText size={20} aria-hidden="true" />{creating ? "Draft booking terms" : "Booking terms"}</h2>
-        <label>Exact booking terms<textarea rows={4} value={creating ? draftTerms : terms} onChange={e => {
-          if (creating) setDraftTerms(e.target.value);
-          else { setTerms(e.target.value); setVerified(""); }
-        }} placeholder={creating ? "Describe the service and what each buyer receives." : "Paste the privately shared terms, including the reference."} /></label>
-        <div className="near-terms-actions">{creating && <button className="pp-secondary" type="button" disabled={busy} onClick={() => {
-          const nonce = Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, "0")).join("");
-          setDraftTerms(previous => previous ? `${previous}
-
-Reference: ${nonce}` : `Reference: ${nonce}`);
-        }}>Add private reference</button>}
-        {!creating && loaded && <button className="pp-primary" disabled={busy || !terms.trim()} onClick={() => void run(async () => {
-          const hash = await commitment(terms);
-          if (hash !== loaded.booking.terms_commitment) throw new Error("These terms do not match this booking.");
-          setVerified(hash);
-          setFeedback("The pasted terms match the on-chain commitment.");
-        })}>Verify terms</button>}</div>
-        <p>{creating ? "Add a private reference before creating the booking. Share the exact terms privately with participants." : "Paste the exact text shared by the merchant and verify it before accepting your share. Keep the reference and line breaks intact."}</p>
-      </section>}
-      {!creating && loaded && <section className="pp-panel near-booking" aria-labelledby="near-booking-title">
+      {creating && (account || socialActive) && <div className="near-create-layout">
+        <section className="pp-panel pp-form near-terms" aria-labelledby="draft-terms-title">
+          <h2 id="draft-terms-title"><FileText size={20} aria-hidden="true" /> Draft booking terms</h2>
+          <label>Exact booking terms<textarea rows={6} value={draftTerms} onChange={e => setDraftTerms(e.target.value)}
+            placeholder="Describe the service and what each buyer receives." /></label>
+          <div className="near-terms-actions"><button className="pp-secondary" type="button" disabled={busy} onClick={() => {
+            const nonce = Array.from(crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2, "0")).join("");
+            setDraftTerms(previous => previous ? `${previous}\n\nReference: ${nonce}` : `Reference: ${nonce}`);
+          }}>Add private reference</button></div>
+          <p>Share these exact terms privately with participants, including the reference.</p>
+        </section>
+        <section className="pp-panel near-create" aria-labelledby="draft-buyers-title">
+        <h2 id="draft-buyers-title">Buyers and deadlines</h2>
+        <form className="pp-form" onSubmit={event => void create(event)}>
+          <label>Buyer and token amount, one per line<textarea name="shares" required rows={3} placeholder="buyer.testnet 20" /></label>
+          <div className="near-create-dates">
+            <label>Funding deadline<input type="datetime-local" name="fund" required /></label>
+            <label>Service end<input type="datetime-local" name="end" required /></label>
+          </div>
+          <p>Buyers can open disputes within 48 hours after the service ends.</p>
+          {socialCreator && <p className="near-note">Create with NEAR Auth. PactPay can cover Testnet fees for your first booking. Review and approve in the popup.</p>}
+          {socialActive && !account && !resolutionV2 && v2Escrow &&
+            <p><a href={workspaceLink("/booking",v2Escrow)}>Open Resolution Agreement workspace to create with NEAR Auth</a></p>}
+          <button className="pp-primary" disabled={!(canSign || (socialCreator && !busy && !pending && !uncertain))}>Create <ArrowRight size={16} aria-hidden="true" /></button>
+        </form>
+      </section>
+      </div>}
+      {!creating && loaded && workspaceView === "booking" && <section className="pp-panel near-booking" aria-labelledby="near-booking-title">
         <div className="near-booking-header">
-          <div className="near-booking-title"><h2 id="near-booking-title">Booking {loaded.id}</h2><span className="pp-badge">{loaded.booking.captured ? "Captured" : "Collecting shares"}</span></div>
+          <div className="near-booking-title"><h2 id="near-booking-title" ref={bookingHeading} tabIndex={-1}>Booking #{loaded.id}</h2><span className="pp-badge">{loaded.booking.captured ? "Captured" : "Collecting shares"}</span></div>
           <div className="near-booking-tools">
           <button className="pp-secondary" disabled={busy} onClick={() => void run(async () => {
             await read(loaded.id);
             setFeedback("Booking refreshed from finalized NEAR state.");
-          })}><RefreshCw size={16} aria-hidden="true" /> Refresh from NEAR</button>
+          })}><RefreshCw size={16} aria-hidden="true" /> Refresh</button>
           <button className="pp-secondary" disabled={busy} onClick={() => void run(async () => {
             const booking = await read(loaded.id);
             const receipt = {network:"testnet",escrow,token:loaded.token,bookingId:loaded.id,booking};
@@ -556,10 +706,32 @@ Reference: ${nonce}` : `Reference: ${nonce}`);
             const link=document.createElement("a");
             link.href=url;link.download=`pactpay-testnet-booking-${loaded.id}.json`;link.click();
             setTimeout(()=>URL.revokeObjectURL(url),1000);
-          })}><Download size={16} aria-hidden="true" /> Export public receipt</button>
+          })}><Download size={16} aria-hidden="true" /> Export receipt</button>
           </div>
         </div>
-        <div className="near-booking-overview">
+        {!claimPage && <div className="near-section-switch" role="group" aria-label="Booking sections">
+          <button type="button" aria-pressed={bookingView === "shares"} onClick={() => setBookingView("shares")}>Shares &amp; payments</button>
+          <button type="button" aria-pressed={bookingView === "terms"} onClick={() => setBookingView("terms")}>Booking terms</button>
+          <button type="button" aria-pressed={bookingView === "details"} onClick={() => setBookingView("details")}>Booking details</button>
+          <a href={workspaceLink("/claim",escrow,loaded.id)}>Claim funds <ArrowRight size={15} aria-hidden="true" /></a>
+        </div>}
+        {!claimPage && bookingView === "terms" && <section className="pp-panel pp-form near-terms" id="booking-terms">
+        <h3><FileText size={20} aria-hidden="true" /> Booking terms</h3>
+        <label>Exact booking terms<textarea ref={termsInput} rows={4} value={terms} onChange={e => {
+          setTerms(e.target.value);
+          setVerified("");
+        }} placeholder="Paste the privately shared terms, including the reference." /></label>
+        <div className="near-terms-actions"><button className="pp-primary" disabled={busy || !terms.trim()} onClick={() => void run(async () => {
+          const hash = await commitment(terms);
+          if (hash !== loaded.booking.terms_commitment) throw new Error("These terms do not match this booking.");
+          setVerified(hash);
+          setBookingView("shares");
+          requestAnimationFrame(() => bookingHeading.current?.focus());
+          setFeedback("The pasted terms match the on-chain commitment.");
+        })}>Verify terms</button></div>
+        <p>Paste the exact text shared by the merchant, including the reference and line breaks.</p>
+      </section>}
+        {(claimPage || bookingView === "details") && <div className="near-booking-overview">
           <dl className="near-booking-stats">
             <div><dt>Booking total</dt><dd>{total?.toString()} <small>PDEMO</small></dd></div>
             <div><dt>Contributions received</dt><dd>{funded?.toString()} <small>PDEMO</small></dd></div>
@@ -571,16 +743,44 @@ Reference: ${nonce}` : `Reference: ${nonce}`);
             <div><dt>Funding closes</dt><dd>{new Date(Number(loaded.booking.fund_until) * 1000).toLocaleString()}</dd></div>
             <div><dt>Service ends</dt><dd>{new Date(Number(loaded.booking.service_end) * 1000).toLocaleString()}</dd></div>
           </dl>
-        </div>
+        </div>}
+        <div className="near-share-panel" hidden={!claimPage && bookingView !== "shares"}>
         <div className="near-booking-shares-heading">
-        <h3>Participant shares</h3>
+        <h3>{claimPage ? "Participant claims" : "Participant shares"}</h3>
+        {!claimPage && !missingInvitedShare && shareLink && <ShareInvitation key={shareLink} url={shareLink} />}
+        {!missingInvitedShare && loaded.booking.positions.length > 1 && <div className="near-share-picker"><label htmlFor="near-participant">Participant</label>
+          <select id="near-participant" value={selectedShare} onChange={event => setShareSelection({booking: loaded.id, index: Number(event.target.value)})}>
+            {loaded.booking.positions.map((position, index) => <option key={index} value={index}>
+              {index + 1}. {position.buyer}{account === position.buyer ? " (you)" : ""} · {position.share} PDEMO
+            </option>)}
+          </select>
+        </div>}
         {claimPage && !account && <button className="pp-primary" disabled={busy} onClick={() => void connectWallet()}>Connect wallet to claim</button>}
         {!claimPage && account === loaded.booking.merchant && !loaded.booking.captured && loaded.booking.positions.every(p => p.funded) &&
           loaded.time < Number(loaded.booking.service_end) &&
           <button className="pp-secondary" disabled={!canSign} onClick={() => void run(() => action("capture", {id: loaded.id}))}>Capture booking</button>}
         </div>
-        <div className="near-booking-shares">{loaded.booking.positions.map((position, index) =>
-          <PositionCard key={`${loaded.id}:${index}`} position={position} index={index}
+        {!claimPage && <div className="near-share-permissions">
+          <strong>Who can see this share?</strong>
+          <dl>
+            <div><dt>Public</dt><dd>Wallet addresses, amounts, status and public receipts.</dd></div>
+            <div><dt>Buyer and merchant</dt><dd>Evidence shared with their authorized NEAR wallet.</dd></div>
+          </dl>
+          <small>Removing access affects future requests. It cannot delete copies already saved.</small>
+        </div>}
+        {staleInvitation && <div className="near-share-permissions">
+          <p role="status">This link points to agreement version {invitedVersion}. The current version is {currentVersion}.</p>
+          <button type="button" className="pp-secondary" onClick={() => setReviewedInvitationVersion(currentVersion)}>
+            View current version
+          </button>
+        </div>}
+        {missingInvitedShare && <a className="pp-secondary" href={workspaceLink("/booking", escrow, loaded.id)}>Open booking without invitation</a>}
+        {!missingInvitedShare && !staleInvitation && <div className="near-booking-shares">{loaded.booking.positions.map((position, index) =>
+          <div key={`${loaded.id}:${index}`} hidden={index !== selectedShare}><PositionCard position={position} index={index}
+            onReviewTerms={() => {
+              setBookingView("terms");
+              requestAnimationFrame(() => termsInput.current?.focus());
+            }}
             booking={loaded.booking} bookingId={loaded.id} account={account} time={loaded.time} enabled={canSign}
             claimOnly={claimPage}
             v2={resolutionV2}
@@ -608,26 +808,15 @@ Reference: ${nonce}` : `Reference: ${nonce}`);
             register={() => void run(async () => {
               const bounds = await view<{min: string}>(loaded.token, "storage_balance_bounds");
               await action("storage_deposit", {account_id: account, registration_only: true}, loaded.token, bounds.min);
-            })} />
-        )}</div>
+            })} /></div>
+        )}</div>}
+        </div>
       </section>}
-      {!claimPage && !creating && <IntentsQuote />}
-      {creating && !account && <section className="pp-panel near-open-booking">
+      {!claimPage && !creating && <div hidden={workspaceView !== "quote"}><IntentsQuote /></div>}
+      {creating && !account && !socialActive && <section className="pp-panel near-open-booking">
         <h2>Connect a wallet to create a booking</h2>
         <p>Your NEAR Testnet wallet sets the merchant account and signs the booking.</p>
         <button className="pp-primary" disabled={busy} onClick={() => void connectWallet()}><Wallet size={16} aria-hidden="true" /> Connect wallet</button>
-      </section>}
-      {creating && account && <section className="pp-panel near-create">
-        <h2>Buyers and deadlines</h2>
-        <form className="pp-form" onSubmit={event => void create(event)}>
-          <label>Buyer and token amount, one per line<textarea name="shares" required rows={3} placeholder="buyer.testnet 20" /></label>
-          <div className="near-create-dates">
-            <label>Funding deadline<input type="datetime-local" name="fund" required /></label>
-            <label>Service end<input type="datetime-local" name="end" required /></label>
-          </div>
-          <p>Buyers can open disputes within 48 hours after the service ends.</p>
-          <button className="pp-primary" disabled={!canSign}>Create <ArrowRight size={16} aria-hidden="true" /></button>
-        </form>
       </section>}
     </>}
       </div>}
@@ -636,10 +825,10 @@ Reference: ${nonce}` : `Reference: ${nonce}`);
   </div>;
 }
 
-function PositionCard({position: p, index, booking, bookingId, account, time, enabled, verified, verifiedTerms, send, fund, register, demoTokens, claimOnly, sponsor, v2, workspace}: {
+function PositionCard({position: p, index, booking, bookingId, account, time, enabled, verified, verifiedTerms, send, fund, register, demoTokens, claimOnly, sponsor, v2, workspace, onReviewTerms}: {
   position: Position; index: number; booking: Booking; bookingId: number; account: string; time: number;
   enabled: boolean; verified: boolean; verifiedTerms: string; send: (method: string, args?: Record<string, unknown>, receiver?: string, deposit?: string) => void;
-  fund: () => void; demoTokens?: () => void; register: () => void; claimOnly: boolean; sponsor?: () => void;
+  onReviewTerms: () => void; fund: () => void; demoTokens?: () => void; register: () => void; claimOnly: boolean; sponsor?: () => void;
   v2:boolean; workspace:React.ReactNode;
 }) {
   const buyer = account === p.buyer;
@@ -666,7 +855,7 @@ function PositionCard({position: p, index, booking, bookingId, account, time, en
     }).catch(() => {});
     return () => { current = false; };
   }, [bookingId,index,p,time,buyer,merchant,claimOnly,v2]);
-  const currentRemedy = remedy?.revision === p.evidence_revision && time < Number(remedy.due) ? remedy : null;
+  const currentRemedy = remedy && remedy.revision === p.evidence_revision && time < Number(remedy.due) ? remedy : null;
   const due = Math.floor(new Date(remedyDue).getTime()/1000);
   const proposed = /^\d{1,39}$/.test(refund) && BigInt(refund) <= BigInt(p.share);
   const status = allocated ? "Allocated" : p.dispute_until ? "Disputed · funds held" :
@@ -679,6 +868,8 @@ function PositionCard({position: p, index, booking, bookingId, account, time, en
         <span className={p.dispute_until && !allocated ? "pp-badge near-dispute" : "pp-badge"}>{status}</span>
       </div>
     </div>
+    {!claimOnly && buyer && fundingOpen && !p.accepted && !verified &&
+      <button className="pp-primary" type="button" onClick={onReviewTerms}>Review booking terms</button>}
     {!claimOnly && buyer && fundingOpen && !p.accepted && <button className="pp-secondary" disabled={!enabled || !verified} onClick={() =>
       send("accept", {terms_commitment: booking.terms_commitment})}>Accept verified terms</button>}
     {sponsor && buyer && fundingOpen && !p.accepted && <button className="pp-secondary"

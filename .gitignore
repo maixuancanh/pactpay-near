@@ -17,3 +17,5 @@ contracts/near-v2/target/
 .vercel
 *.tsbuildinfo
 .wrangler/
+
+.vercel

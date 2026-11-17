@@ -43,7 +43,15 @@ On each payout transaction, check the receipt logs for an NEP-141 `ft_transfer` 
 
 Open Booking #2 and inspect **Participant shares → Resolution agreement**. Anyone can read the final amounts without connecting a wallet. To test a new booking, use two NEAR Testnet wallets in separate browser profiles, one as merchant and one as buyer. The buyer needs PDEMO and enough testnet NEAR for any wallet-paid transactions. If the demo dispenser is available for the connected buyer, **Get demo PDEMO** appears in the booking interface. Token registration reserves storage for the account.
 
-A public receipt can be exported from the booking. The agreement proof export also accepts the proposal, approval, and claim transaction references. Use **Verify** to check a supported proof file against chain data. A private case bundle is intended for authorized participants.
+A public receipt can be exported from the booking. The agreement proof export uses indexed transaction references when available. If a reference is missing, it can be supplied manually and checked against NEAR. Use **Verify** to check a supported proof file against chain data. A private case bundle is intended for authorized participants.
+
+## Create a Testnet booking with NEAR Auth
+
+Open the [Booking V2 workspace](https://pactpay-near-testnet-web.vercel.app/booking?escrow=escrow-v2.pactpay-530c506b.testnet), select **Connect → Continue with NEAR Auth**, and create a booking. Review the transaction in the Auth0 popup and approve it. The account menu shows the derived MPC address.
+
+The Testnet relayer can activate a new MPC account and fund the shortfall for its first eligible booking. It sends Testnet NEAR directly to the MPC account, subject to sponsorship limits. The MPC key signs the booking transaction and the account pays the attached escrow storage deposit and gas from its balance.
+
+The consent and signing walkthrough includes a finalized MPC self-transfer. The sponsored Create flow is published, with a finalized sponsored booking and separate Google and passkey acceptance runs still pending. See [FastAuth deployment and receipts](docs/near-auth-independent-testnet.md).
 
 ## Privacy and verification
 
@@ -53,7 +61,7 @@ A public receipt can be exported from the booking. The agreement proof export al
 | Evidence storage | The browser encrypts shared excerpts for authorized participants. The hosted evidence API stores encrypted objects through the Cloudflare R2 worker. The evidence panel supports text and file extraction, including PDF and image OCR. Participants can review excerpts before sharing. |
 | NEAR AI Cloud | Helps parties review evidence and find supporting excerpts. The hosted proof can authenticate the signed encrypted AI transcript. Independent verification of the exact AI plaintext remains outside the demonstrated scope. Wallet approvals authorize resolution actions. |
 | Signed transfers and receipts | Signature checks bind actions to the relevant wallets. For supported retryable claims, the PDEMO contract records an idempotent payment keyed by claim so a retry can complete without a second transfer. Legacy pending claims have an operator reconciliation path. |
-| Sign-in | The hosted social flow uses Auth0. A connected NEAR wallet authorizes booking transactions and private evidence access. |
+| Sign-in | The hosted social flow uses Auth0. Booking V2 can request an MPC signature when creating a booking. Other booking actions and private evidence access use a connected NEAR wallet. |
 
 Parties should retain their evidence recovery material and any private terms or proof files they need. The chain commitments allow an authorized reviewer to compare a shared document against the committed content. The public records expose wallet addresses and payment amounts.
 

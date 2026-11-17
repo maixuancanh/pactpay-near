@@ -18,7 +18,7 @@ const isDecimal = (value, bits) => typeof value === "string" && value.length <= 
 const isHash = value => typeof value === "string" && hash.test(value);
 const isDigest = value => typeof value === "string" && sha256.test(value);
 
-class CheckFailure extends Error {}
+export class CheckFailure extends Error {}
 function decodeBase64(value, length) {
   requireProof(typeof value === "string" && value.length <= 800000, "Invalid encoded data.");
   const bytes = Buffer.from(value,"base64");
@@ -50,7 +50,7 @@ function validateCase(data) {
     BigInt(p.fallbackBuyer) + BigInt(p.fallbackMerchant) === BigInt(p.retained), "Invalid agreement splits or deadline order.");
 }
 
-async function finalizedCall(reader, ref, escrow, method) {
+export async function finalizedCall(reader, ref, escrow, method) {
   requireProof(isHash(ref?.hash) && isAccount(ref?.signer), "Invalid transaction reference.");
   const result = await reader.transaction(ref.hash,ref.signer);
   if (result?.final_execution_status !== "FINAL") throw new Error("Transaction finality unavailable.");
@@ -72,7 +72,7 @@ function samePosition(args,p) {
   return args?.id === Number(p.booking) && args.index === Number(p.position);
 }
 
-function receiptEvents(result, executor, standard, version, event) {
+export function receiptEvents(result, executor, standard, version, event) {
   const matches = [];
   for (const receipt of result.receipts_outcome ?? []) {
     if (receipt.outcome?.executor_id !== executor || !receipt.outcome.status ||
@@ -86,14 +86,24 @@ function receiptEvents(result, executor, standard, version, event) {
         continue;
       }
       if (parsed.standard === standard && parsed.version === version && parsed.event === event && Array.isArray(parsed.data)) {
-        matches.push(...parsed.data.map(data => ({data,block:receipt.block_hash})));
+        matches.push(...parsed.data.map(data => ({data,block:receipt.block_hash,receiptId:receipt.id})));
       }
     }
   }
   return matches;
 }
 
-async function verifyClaim(reader,ref,p) {
+export async function findHistoricalClaim(reader, p, claimId, block) {
+  for (let from_index = 0; from_index < 256; from_index += 20) {
+    const limit = Math.min(20, 256 - from_index);
+    const records = await reader.view(p.escrow, "get_claims",
+      {id:Number(p.booking),index:Number(p.position),from_index,limit},block);
+    const record = records?.find(item => item.claim_id === claimId && item.agreement_version === p.version);
+    if (record || !records || records.length < limit) return record;
+  }
+}
+
+export async function verifyClaim(reader,ref,p) {
   requireProof([p.buyer,p.merchant].includes(ref?.signer), "Claim signer is outside the agreement.");
   if (ref.reconciliation) return verifyReconciledClaim(reader,ref,p);
   const tx = await reader.transaction(ref.hash,ref.signer);
@@ -124,13 +134,12 @@ async function verifyClaim(reader,ref,p) {
     movement.amount === claim.amount, "Token transfer differs from the escrow payout.");
   const block = paid[0].block;
   if (!isHash(block)) throw new Error("Claim block unavailable.");
-  const records = await reader.view(p.escrow,"get_claims",
-    {id:Number(p.booking),index:Number(p.position),from_index:0,limit:20},block);
-  const record = records?.find(item => item.claim_id === claimId && item.agreement_version === p.version);
+  const record = await findHistoricalClaim(reader,p,claimId,block);
   requireProof(record?.recipient === claim.recipient && record.amount === claim.amount &&
     record.status === "Paid" && record.attempt_nonce === claim.attempt_nonce,
   "Historical ledger has no matching Paid claim.");
-  return {id:claimId,recipient:claim.recipient,amount:claim.amount,block};
+  return {id:claimId,recipient:claim.recipient,amount:claim.amount,block,
+    receiptIds:[pending[0].receiptId,transfer[0].receiptId,paid[0].receiptId]};
 }
 
 async function verifyReconciledClaim(reader,ref,p) {

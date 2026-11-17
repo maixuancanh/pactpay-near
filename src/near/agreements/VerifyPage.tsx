@@ -2,17 +2,39 @@ import {useState} from "react";
 import type {FormEvent} from "react";
 import {publicResolutionProof} from "./proof";
 import {verifyPrivateFields} from "./verify-private";
+import {summarizeCaseChecks} from "./case-model";
+import type {VerificationCheck} from "./case-model";
 import "../near.css";
 import "../../commerce/commerce.css";
 import "../../commerce/portal-theme.css";
 
-type Check = {name:string; status:string; detail?:string};
+type Check = VerificationCheck;
 const labels:Record<string,string> = {
   proofIdentity:"Testnet and escrow",agreementDigest:"Signed agreement digest",bilateralApproval:"Approval by both wallets",
   contractVersionAndCode:"Contract version and code hash",claimPayments:"Finalized payouts",evidenceSnapshot:"Private evidence snapshot",
   privateTermsCommitment:"Private terms",evidencePlaintext:"Private evidence contents",
-  aiTranscript:"Signed AI transcript",aiPlaintextBinding:"AI plaintext binding",
+  evidenceSource:"Evidence source",aiTranscript:"Signed AI transcript",aiPlaintextBinding:"AI plaintext binding",
 };
+
+const caseCheckNames = {
+  commitment:"evidenceSnapshot",source:"evidenceSource",encryptedTranscript:"aiTranscript",
+  plaintextBinding:"aiPlaintextBinding",approval:"bilateralApproval",payout:"claimPayments",
+} as const;
+
+function displayChecks(remote: Check[], local: Check[]): Check[] {
+  const byName = new Map(remote.map(check=>[check.name,check]));
+  for (const check of local) byName.set(check.name,check);
+  const summary = summarizeCaseChecks([...byName.values()]);
+  for (const key of Object.keys(caseCheckNames) as (keyof typeof caseCheckNames)[]) {
+    const name = caseCheckNames[key];
+    const result = summary[key];
+    if (!byName.has(name)) byName.set(name,{
+      name,status:"Unavailable",reason:result.reason,
+      detail:"This check could not be completed with the material in this proof.",
+    });
+  }
+  return [...byName.values()];
+}
 
 export default function VerifyPage(){
   const [payouts, setPayouts] = useState<{id:string;hash:string;amount:string}[]>([]);
@@ -39,7 +61,7 @@ export default function VerifyPage(){
         result.checks.some((check:Check)=>check.name==="agreementDigest" && check.status==="Passed")
         ? await verifyPrivateFields({...proof,authorized}) : [];
       setPayouts(Array.isArray(result.verifiedClaims) ? result.verifiedClaims : []);
-      setChecks(result.checks.map((check:Check)=>local.find(item=>item.name===check.name)??check));
+      setChecks(displayChecks(result.checks,local));
     }catch(err){setError(err instanceof Error ? err.message : "Unable to verify.");}
     finally{setBusy(false);}
   }

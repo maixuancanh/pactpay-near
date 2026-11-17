@@ -2,6 +2,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
+    {"source": "/auth-consent-check", "destination": "/index.html"},
     {"source": "/booking", "destination": "/index.html"},
     {"source": "/claim", "destination": "/index.html"},
     {"source": "/verify", "destination": "/index.html"},

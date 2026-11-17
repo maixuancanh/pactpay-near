@@ -18,11 +18,22 @@ export type ClaimRecord = {
 };
 export type PositionLedger = Record<"funded" | "unallocated" | "retained" | "available" | "pending" | "paid", string>;
 
+async function readClaims(escrow: string,args: {id: number; index: number}) {
+  const claims: ClaimRecord[] = [];
+  for (let from_index = 0; from_index < 256; from_index += 20) {
+    const limit = Math.min(20,256-from_index);
+    const page = await view<ClaimRecord[]>(escrow,"get_claims",{...args,from_index,limit});
+    claims.push(...page);
+    if (page.length < limit) break;
+  }
+  return claims;
+}
+
 export async function readResolution(escrow: string, id: number, index: number) {
   const args = {id, index};
   const [agreement, claims, ledger] = await Promise.all([
     view<AgreementRecord | null>(escrow, "get_agreement", args),
-    view<ClaimRecord[]>(escrow, "get_claims", {...args, from_index: 0, limit: 20}),
+    readClaims(escrow,args),
     view<PositionLedger>(escrow, "get_position_ledger", args),
   ]);
   const retryEnabled=await view<boolean>(await view<string>(escrow,"get_token"),"payout_enabled",{escrow}).catch(()=>false);

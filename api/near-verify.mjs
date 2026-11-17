@@ -1,7 +1,5 @@
-import {providers} from "near-api-js";
 import {verifyResolutionCase} from "../scripts/near/verify-resolution-case.mjs";
-
-const rpc = new providers.JsonRpcProvider({url:"https://test.rpc.fastnear.com"});
+import {caseReader} from "../lib/near-case-rpc.mjs";
 
 export default async function handler(req,res) {
   res.setHeader("Cache-Control","no-store");
@@ -12,11 +10,7 @@ export default async function handler(req,res) {
     data.escrow!==escrow || JSON.stringify(data).length>24000) {
     return res.status(400).json({error:"Select a public proof for the configured testnet escrow."});
   }
-  const reader={
-    transaction:(hash,signer)=>rpc.txStatusReceipts(hash,signer,"FINAL"),
-    view:(account,method,args,blockId)=>rpc.callFunction(account,method,args,{blockId}),
-    codeHash:async(account,blockId)=>(await rpc.query({request_type:"view_account",account_id:account,block_id:blockId})).code_hash,
-  };
+  const reader=caseReader(AbortSignal.timeout(18000));
   if(data.codeHash===null && data.receipts?.approval){
     const {hash,signer}=data.receipts.approval;
     if(!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(hash) || signer!==data.proposal?.buyer && signer!==data.proposal?.merchant)

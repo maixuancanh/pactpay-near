@@ -1,6 +1,7 @@
 import {useEffect, useState} from "react";
 import type {FormEvent} from "react";
 import type {Booking, Position} from "../chain";
+import {chainTime} from "../chain";
 import type {SignChallenge} from "../EvidencePanel";
 import {agreementDigest} from "./canonical";
 import {readResolution} from "./chain-v2";
@@ -11,6 +12,9 @@ import type {AgreementV2} from "./types";
 import type {AssessmentCase} from "./assessment-digest.mjs";
 import type {analyzeResolutionEvidence} from "../claimguard";
 import ResolutionExport from "./ResolutionExport";
+import CaseTimeline from "./CaseTimeline";
+import {nextResolutionAction} from "./next-action";
+import {reminderForRole} from "../../../lib/near-reminders.mjs";
 import type {ResolutionEvidenceOpening} from "./proof";
 
 const splitFields = [
@@ -40,6 +44,7 @@ export default function ResolutionWorkspace({escrow, booking, position, id, inde
   account:string; time:number; enabled:boolean; claimOnly:boolean; verifiedTerms:string;
   send:(method:string,args:Record<string,unknown>)=>Promise<void>; sign:SignChallenge;
 }) {
+  const [section, setSection] = useState<"payments" | "agreement" | "evidence" | "proof">("payments");
   const [data, setData] = useState<Awaited<ReturnType<typeof readResolution>>>();
   const [snapshot, setSnapshot] = useState<{entries:EvidenceEntry[];evidenceRoot:string}>();
   const [historicalSnapshot,setHistoricalSnapshot] = useState<typeof snapshot | null>();
@@ -137,13 +142,11 @@ export default function ResolutionWorkspace({escrow, booking, position, id, inde
   const boundAssessment = p?.assessmentDigest === assessment?.result.digest ? assessment?.result : undefined;
   const displayedAssessment = currentAssessment ?? boundAssessment;
   const deadline = p && (proposed ? p.acceptBy : agreement?.status === "Active" && time < Number(p.deliverBy) ? p.deliverBy : open ? p.reviewUntil : undefined);
-  const nextAction = !account ? "Connect your wallet to act." :
-    data?.claims.some(claim=>claim.recipient===account && claim.status==="Available") ? "Claim your available payout or refund below." :
-    proposed && (buyer || merchant) ? agreement.approvals & (buyer ? 1 : 2) ? "Waiting for the other party to sign." : "Open the private agreement terms, then review and sign." :
-    open && p && time >= Number(p.reviewUntil) ? "Apply the signed deadline split." :
-    agreement?.status === "Active" ? merchant ? "Upload and submit completion evidence by the delivery deadline." : "Waiting for the merchant to submit completion evidence." :
-    agreement?.status === "CompletionSubmitted" ? buyer ? "Review the merchant’s evidence. Confirm completion or record an objection." : "Waiting for the buyer to review completion." :
-    canPropose ? "Share and commit the evidence, then propose a split." : null;
+  const nextAction = nextResolutionAction({account:account ?? undefined,open,proposed:Boolean(proposed),claims:data?.claims,
+    agreement,buyer,merchant,time,canPropose:Boolean(canPropose)});
+  const reminder = buyer || merchant
+    ? reminderForRole({escrow,booking:id,position:index,agreement:agreement ?? null,time},buyer ? "buyer" : "merchant")
+    : null;
   const objection = selected.evidence?.author===account ? selected.evidence : undefined;
 
   function propose(event:FormEvent<HTMLFormElement>) {
@@ -176,15 +179,28 @@ export default function ResolutionWorkspace({escrow, booking, position, id, inde
       if (window.confirm("Sign these amounts and the deadline split shown in the form?")) await send("propose_agreement",{proposal});
     });
   }
-  return <section className="near-evidence">
-    <h4>{claimOnly ? "Claims" : "Resolution agreement"}</h4>
+  const hasEvidence = !claimOnly && Boolean(position.dispute_until && (buyer || merchant));
+  const hasAgreement = !claimOnly && Boolean(agreement || canPropose);
+  const activeSection = (section === "agreement" && hasAgreement) || (section === "evidence" && hasEvidence) ||
+    (section === "proof" && hasAgreement && agreement) ? section : "payments";
+
+  return <section className="near-evidence near-resolution">
+    {claimOnly ? <h4>Claims</h4> : (hasAgreement || hasEvidence) && <div className="near-section-switch near-resolution-switch" role="group" aria-label="Share sections">
+      <button type="button" aria-pressed={activeSection === "payments"} onClick={() => setSection("payments")}>Payments</button>
+      {hasAgreement && <button type="button" aria-pressed={activeSection === "agreement"} onClick={() => setSection("agreement")}>Agreement</button>}
+      {hasEvidence && <button type="button" aria-pressed={activeSection === "evidence"} onClick={() => setSection("evidence")}>Private evidence</button>}
+      {hasAgreement && agreement && <button type="button" aria-pressed={activeSection === "proof"} onClick={() => setSection("proof")}>Proof &amp; export</button>}
+    </div>}
+    {error && <p role="alert">{error}</p>}
+    {!data && !error && <p role="status">Loading share from NEAR…</p>}
     {!claimOnly && nextAction && <div className="pp-note">
       <div><strong>What to do next</strong><p>{nextAction}</p>
+        {reminder && <p key={reminder.key}>Due within {reminder.window === 3600 ? "one hour" : "24 hours"}.</p>}
         {deadline && <><p>Deadline <time dateTime={new Date(Number(deadline)*1000).toISOString()}>{new Date(Number(deadline)*1000).toLocaleString()}</time></p>
           <button type="button" className="pp-secondary" onClick={()=>saveDeadline(escrow,id,index,deadline)}>Add deadline to calendar</button></>}
       </div>
     </div>}
-    {error && <p role="alert">{error}</p>}
+    <div hidden={activeSection !== "payments"}>
     {data && <div className="near-summary">
       {(["funded","unallocated","retained","available","pending","paid"] as const).map(key =>
         <div key={key}><span>{key === "paid" ? "Received" : key}</span><strong>{data.ledger[key]} PDEMO</strong></div>)}
@@ -192,8 +208,10 @@ export default function ResolutionWorkspace({escrow, booking, position, id, inde
     {!claimOnly && data && data.ledger.retained !== "0" && <p className="pp-note">
       <strong>{data.ledger.retained} PDEMO held in escrow.</strong> The buyer can confirm completion after the merchant submits evidence. After the review deadline, either party can apply the signed deadline split.
     </p>}
-    {data?.claims.map(claim => <div key={claim.claim_id}>
-      <p>{claim.amount} PDEMO · {claim.recipient} · {claim.status === "Paid" ? "Received" : claim.status === "Pending" ? "Transfer pending" : "Available to claim"}</p>
+    {data?.claims.length === 0 && <p className="near-panel-caption">No payouts or refunds have been allocated yet.</p>}
+    <div className="near-payout-list">{data?.claims.map(claim => <div className="near-payout-row" key={claim.claim_id}>
+      <div><strong>{claim.amount} PDEMO</strong><code>{claim.recipient}</code></div>
+      <span className="pp-badge">{claim.status === "Paid" ? "Received" : claim.status === "Pending" ? "Transfer pending" : "Available to claim"}</span>
       {claim.status === "Paid" && samplePayouts[claim.claim_id] && <a
         href={"https://testnet.nearblocks.io/txns/"+encodeURIComponent(samplePayouts[claim.claim_id])}
         target="_blank" rel="noreferrer">View finalized payout on NEAR</a>}
@@ -202,19 +220,10 @@ export default function ResolutionWorkspace({escrow, booking, position, id, inde
           onClick={()=>void run(()=>send(data.retryEnabled ? "claim_retryable_v2" : "claim_v2",{claim_id:claim.claim_id}))}>
           {claim.status==="Pending" ? "Retry payout" : `Claim ${claim.amount} PDEMO`}
         </button>}
-    </div>)}
-    {data?.agreement && data.claims.some(claim => claim.status === "Paid" && !samplePayouts[claim.claim_id]) && <div className="pp-form">
-      <label>Show finalized payout links
-        <input type="file" accept=".json,application/json" onChange={event => {
-          const file = event.currentTarget.files?.[0];
-          event.currentTarget.value = "";
-          if (file) void linkPayoutProof(file);
-        }} />
-      </label>
-      <p>Choose the public proof for this agreement. Verified transaction links appear beside their payouts.</p>
-      <p role="status">{payoutLookupStatus}</p>
-    </div>}
-    {!claimOnly && position.dispute_until && (buyer || merchant) && <ResolutionEvidence account={account} escrow={escrow}
+    </div>)}</div>
+    </div>
+    <div hidden={activeSection !== "evidence"}>
+    {hasEvidence && <ResolutionEvidence account={account} escrow={escrow}
       booking={String(id)} position={index} sign={sign} onSnapshot={setSnapshot}
       historicalRoot={p?.evidenceRoot} onHistoricalSnapshot={setHistoricalSnapshot}
       verifiedTerms={verifiedTerms} assessmentCase={canPropose ? {
@@ -263,7 +272,9 @@ export default function ResolutionWorkspace({escrow, booking, position, id, inde
         {result.assessment.suggestedRemedy && <p>Suggested follow-up: {result.assessment.suggestedRemedy}</p>}
       </section>;
     })()}
-    {!claimOnly && canPropose && <form className="pp-form" onSubmit={propose}>
+    </div>
+    <div hidden={activeSection !== "agreement"}>
+    {!claimOnly && canPropose && <form className="pp-form near-agreement-form" onSubmit={propose}>
       <p>Amounts are in the token’s smallest unit. Both parties sign the completion and deadline splits.</p>
       {currentAssessment && <label><input type="checkbox" checked={includeAssessment}
         onChange={event=>setIncludeAssessment(event.target.checked)}/> Include the AI assessment digest</label>}
@@ -276,16 +287,53 @@ export default function ResolutionWorkspace({escrow, booking, position, id, inde
       <button className="pp-primary" disabled={locked}>Propose and sign</button>
     </form>}
     {p && agreement && <div>
-      <h4>Version {p.version} · {agreement.status}</h4>
-      <p>Agree by {new Date(Number(p.acceptBy)*1000).toLocaleString()}. Complete by {new Date(Number(p.deliverBy)*1000).toLocaleString()}. Review by {new Date(Number(p.reviewUntil)*1000).toLocaleString()}.</p>
-      <dl>{splitFields.map(([key,label])=><div key={key}><dt>{label}</dt><dd>{p[key]}</dd></div>)}</dl>
-      <p>Buyer <code>{p.buyer}</code> · Merchant <code>{p.merchant}</code></p>
-      <p>Signed evidence snapshot <code>{p.evidenceRoot}</code></p>
+      <div className="near-agreement-review">
+        <header className="near-panel-heading">
+          <div><h4>Resolution agreement</h4><p>Version {p.version}</p></div>
+          <span className="pp-badge">{agreement.status === "CompletionSubmitted" ? "Completion submitted" :
+            agreement.status === "FallbackAllocated" ? "Deadline split applied" : agreement.status}</span>
+        </header>
+        <table className="near-split-table">
+          <caption>Agreed payment split <span>All amounts in PDEMO</span></caption>
+          <thead><tr><th scope="col">When</th><th scope="col">Buyer refund</th><th scope="col">Merchant payout</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">On approval</th><td>{p.immediateBuyer}</td><td>{p.immediateMerchant}</td></tr>
+            <tr><th scope="row">On confirmed completion</th><td>{p.successBuyer}</td><td>{p.successMerchant}</td></tr>
+            <tr><th scope="row">If the review deadline passes</th><td>{p.fallbackBuyer}</td><td>{p.fallbackMerchant}</td></tr>
+          </tbody>
+        </table>
+        <p className="near-retained-note"><strong>{p.retained} PDEMO</strong> held back at approval for the completion or deadline split.</p>
+        <dl className="near-agreement-deadlines">
+          {([["Sign by", p.acceptBy], ["Complete by", p.deliverBy], ["Review by", p.reviewUntil]] as const).map(([label, value]) => {
+            const date = new Date(Number(value) * 1000);
+            return <div key={label}><dt>{label}</dt><dd><time dateTime={date.toISOString()}>{date.toLocaleString([], {
+              month:"short", day:"numeric", year:"numeric", hour:"numeric", minute:"2-digit",
+            })}</time></dd></div>;
+          })}
+        </dl>
+      </div>
       {!claimOnly && proposed && (buyer || merchant) && !(agreement.approvals & (buyer ? 1 : 2)) &&
         <button className="pp-primary" disabled={locked || !hasReviewedTerms}
           onClick={()=>void run(async()=>{
             if (await agreementDigest(p) !== agreement.digest) throw new Error("Proposal digest does not match.");
-            if (window.confirm("Accept the displayed payment and deadline splits?")) await send("approve_agreement",{...args,digest:agreement.digest});
+            const preview = [
+              `Agreement version ${p.version}. Signing as ${account}.`,
+              `Buyer: ${p.buyer}. Merchant: ${p.merchant}.`,
+              `On approval (PDEMO): buyer ${p.immediateBuyer}, merchant ${p.immediateMerchant}, held ${p.retained}.`,
+              `On completion: buyer ${p.successBuyer}, merchant ${p.successMerchant}.`,
+              `At review deadline: buyer ${p.fallbackBuyer}, merchant ${p.fallbackMerchant}.`,
+              "Accept these terms?",
+            ].join("\n");
+            if (!window.confirm(preview)) return;
+            const [latest, now] = await Promise.all([readResolution(escrow,id,index), chainTime()]);
+            const current = latest.agreement;
+            if (current?.status !== "Proposed" || current.digest !== agreement.digest ||
+                current.proposal.version !== p.version || BigInt(current.proposal.acceptBy) <= BigInt(now) ||
+                (current.approvals & (buyer ? 1 : 2))) {
+              setData(latest);
+              throw new Error("The agreement changed or expired. Review its current terms before signing.");
+            }
+            await send("approve_agreement",{...args,digest:agreement.digest});
           })}>Accept reviewed agreement</button>}
       {!claimOnly && agreement.status === "Active" && merchant && time < Number(p.deliverBy) &&
         <button className="pp-secondary" disabled={locked || !selected.completion}
@@ -302,9 +350,37 @@ export default function ResolutionWorkspace({escrow, booking, position, id, inde
         <button className="pp-secondary" disabled={locked || !objection || objection.entryHash===agreement.objection_evidence_root}
           onClick={()=>void run(()=>send("object_agreement",{...args,evidence_root:objection?.entryHash}))}>Record objection</button>
       </>}
-      {!claimOnly && <ResolutionExport agreement={agreement} snapshot={signedSnapshot ?? undefined} openings={openings} account={account}
-        assessment={boundAssessment && {...boundAssessment.proof,id:boundAssessment.id,model:boundAssessment.model,
-          promptVersion:boundAssessment.promptVersion,inputHash:boundAssessment.inputHash,outputHash:boundAssessment.outputHash}}/>}
+    </div>}
+    </div>
+    {agreement && <div className="near-proof-panel" hidden={activeSection !== (claimOnly ? "payments" : "proof")}>
+      <div className="near-proof-actions">
+        {!claimOnly && activeSection === "proof" && <CaseTimeline key={agreement.digest}
+          escrow={agreement.proposal.escrow} booking={agreement.proposal.booking}
+          position={agreement.proposal.position} version={agreement.proposal.version}/>}
+        {!claimOnly && <ResolutionExport agreement={agreement} snapshot={signedSnapshot ?? undefined} openings={openings} account={account}
+          assessment={boundAssessment && {...boundAssessment.proof,id:boundAssessment.id,model:boundAssessment.model,
+            promptVersion:boundAssessment.promptVersion,inputHash:boundAssessment.inputHash,outputHash:boundAssessment.outputHash}}/>}
+        {data?.claims.some(claim => claim.status === "Paid") && <section className="near-proof-card">
+          <h4>Verify payout receipts</h4>
+          <p>Load a public proof for this agreement to check its transactions against NEAR.</p>
+          <label className="near-proof-upload">
+            <input aria-label="Load public proof JSON" type="file" accept=".json,application/json" onChange={event => {
+              const file = event.currentTarget.files?.[0];
+              event.currentTarget.value = "";
+              if (file) void linkPayoutProof(file);
+            }} />
+          </label>
+          {payoutLookupStatus && <p role="status">{payoutLookupStatus}</p>}
+          {data.claims.filter(claim => claim.status === "Paid" && samplePayouts[claim.claim_id]).map(claim =>
+            <a key={claim.claim_id} href={"https://testnet.nearblocks.io/txns/"+encodeURIComponent(samplePayouts[claim.claim_id])}
+              target="_blank" rel="noreferrer">View {claim.amount} PDEMO payout on NEAR</a>)}
+        </section>}
+      </div>
+      {!claimOnly && p && <dl className="near-proof-identifiers">
+        <div><dt>Buyer</dt><dd><code>{p.buyer}</code></dd></div>
+        <div><dt>Merchant</dt><dd><code>{p.merchant}</code></dd></div>
+        <div><dt>Signed evidence snapshot</dt><dd><code>{p.evidenceRoot}</code></dd></div>
+      </dl>}
     </div>}
   </section>;
 }

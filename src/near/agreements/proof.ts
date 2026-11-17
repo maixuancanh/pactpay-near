@@ -1,4 +1,8 @@
 import type {AgreementV2} from "./types";
+import {copySourceReceipt} from "../../../lib/near-source-proof.mjs";
+import type {SourceReceipt} from "../../../lib/near-source-proof.mjs";
+import {scopeKey} from "./case-model";
+import type {CaseScope} from "./case-model";
 
 export interface ResolutionTransactionReference {
   hash: string;
@@ -20,8 +24,17 @@ export interface ResolutionProof {
   };
 }
 
+export function resolutionProofScope(proof: {network: ResolutionProof["network"]; escrow: string; proposal: CaseScope}): CaseScope {
+  const {network,escrow,booking,position,version}=proof.proposal;
+  const scope={network,escrow,booking,position,version};
+  if (scope.network!==proof.network || scope.escrow!==proof.escrow) throw new Error("Proof scope does not match its agreement.");
+  scopeKey(scope);
+  return scope;
+}
+
 /** Copies the public agreement fields and wallet transaction references only. */
 export function publicResolutionProof(input: Omit<ResolutionProof,"schema"|"network"|"escrow"|"contractVersion">): ResolutionProof {
+  resolutionProofScope({network:"testnet",escrow:input.proposal.escrow,proposal:input.proposal});
   const {
     schema, network, escrow, booking, position, version, buyer, merchant, token,
     termsCommitment, evidenceRoot, privateTermsCommitment, assessmentDigest,
@@ -66,12 +79,13 @@ export interface AuthorizedResolutionProof extends ResolutionProof {
     manifest: import("./evidence-manifest").EvidenceEntry[];
     openings: ResolutionEvidenceOpening[];
     transcript?: ResolutionTranscript;
+    sourceReceipt?: SourceReceipt;
   };
 }
 
 export function authorizedResolutionProof(
   publicProof: ResolutionProof,
-  {manifest, openings, transcript}: AuthorizedResolutionProof["authorized"],
+  {manifest, openings, transcript, sourceReceipt}: AuthorizedResolutionProof["authorized"],
   consent: boolean,
 ): AuthorizedResolutionProof {
   if (!consent) throw new Error("Confirm disclosure of the selected evidence and its excerpt keys.");
@@ -83,6 +97,7 @@ export function authorizedResolutionProof(
         author,sequence,previousEntryHash,ciphertextHash,supersedes,sourceLocator,createdAt,kind,entryHash,
       })),
       openings:openings.map(({entryHash,iv,ciphertext,excerptKey,text}) => ({entryHash,iv,ciphertext,excerptKey,text})),
+      ...(sourceReceipt ? {sourceReceipt:copySourceReceipt(sourceReceipt)} : {}),
       transcript:transcript && {
         id:transcript.id,version:transcript.version,model:transcript.model,promptVersion:transcript.promptVersion,
         inputHash:transcript.inputHash,outputHash:transcript.outputHash,request:transcript.request,response:transcript.response,
