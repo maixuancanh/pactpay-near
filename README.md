@@ -8,6 +8,8 @@ The public demo runs on **NEAR Testnet** and uses **PDEMO**, a test token with n
 
 ## Review in two minutes
 
+For the post-deadline case that connects private AI to the signed settlement, see [Booking #5 and its downloadable proof](docs/near/WORKSHOP-AI-CASE.md).
+
 1. Open [Verify](https://pactpay-near-testnet-web.vercel.app/verify) and select **Verify sample booking**. The public sample is Booking #0, a scripted Testnet settlement with receipts.
 2. Select the modified sample to see the verifier reject an altered amount. Both checks are read-only.
 3. Open [Booking #2](https://pactpay-near-testnet-web.vercel.app/booking?booking=2&escrow=escrow-v2.pactpay-530c506b.testnet) for the two-wallet demo. The receipt links below show the 12 and 8 PDEMO payouts.

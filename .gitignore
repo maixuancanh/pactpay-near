@@ -19,3 +19,4 @@ contracts/near-v2/target/
 .wrangler/
 
 .vercel
+.near-testnet-workshop-*.json
