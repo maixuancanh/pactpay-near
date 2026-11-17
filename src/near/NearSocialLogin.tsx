@@ -75,8 +75,9 @@ export async function signSocialBooking(
   if (ready.account!==expectedAccount || !ready.funded || !ready.publicKey || !ready.nonce || !ready.blockHash) {
     throw new Error("The MPC account is not ready. Reload PactPay and try again.");
   }
+  const bookingArgs = new TextEncoder().encode(JSON.stringify(args));
   const tx=createTransaction(ready.account,PublicKey.fromString(ready.publicKey),escrow,BigInt(ready.nonce)+1n,
-    [actionCreators.functionCall("create_booking",args,100000000000000n,BigInt(deposit))],baseDecode(ready.blockHash));
+    [actionCreators.functionCall("create_booking",bookingArgs,100000000000000n,BigInt(deposit))],baseDecode(ready.blockHash));
   const bytes=encodeTransaction(tx);
   if (bytes.length>740) throw new Error("This booking is too large for social signing. Reduce the number of buyers or use an external wallet.");
   const signing=new Auth0Client({
