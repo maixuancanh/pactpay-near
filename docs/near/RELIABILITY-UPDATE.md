@@ -22,9 +22,19 @@ On November 17, the CLI also replayed Booking #5's proposal, approval and two cl
 
 ## Measured transaction cost
 
-[The read-only Booking #5 cost record](workshop-ai-cost.json) measures four finalized transactions: proposal, approval and two payout claims. Their transaction and receipt outcomes burned 0.0021781632099668 NEAR in total. Attached deposits are excluded. This is not the full booking lifecycle cost, a storage estimate or a future fee quote. AI billing and comparisons across 1, 3 and 10 participants remain unmeasured.
+[The read-only Booking #5 cost record](workshop-ai-cost.json) measures four finalized transactions: proposal, approval and two payout claims. Their transaction and receipt outcomes burned 0.0021781632099668 NEAR in total. Attached deposits are excluded. This is not the full booking lifecycle cost, a storage estimate or a future fee quote. AI billing remains unmeasured.
 
 Reproduce the measurement with `node scripts/near/case-cost.mjs`. It requires public Testnet RPC access, not a wallet.
+
+The separate [sandbox comparison](sandbox-cost-2026-11-17.json) runs creation, acceptance, funding, capture, normal completion and claims with 1, 3 and 10 buyers. These are isolated sandbox measurements, not Testnet receipts or mainnet fee quotes.
+
+| Buyers | Total gas (Tgas) | Signed transactions | Booking storage deposit (NEAR units) |
+| --- | ---: | ---: | ---: |
+| 1 | 23.8275 | 6 | 0.0512 |
+| 3 | 63.2570 | 14 | 0.13312 |
+| 10 | 206.3064 | 42 | 0.41984 |
+
+Storage deposits are reserves, not gas burned. Setup, minting, token-registration gas, disputes and AI are excluded. Every measured share ended paid with zero pending claims, and the escrow token balance returned to zero. The benchmark makes no AI calls; it does not estimate AI cost by group size.
 
 ## Who is trusted for what
 
@@ -37,7 +47,7 @@ Reproduce the measurement with `node scripts/near/case-cost.mjs`. It requires pu
 | History service | Helps discover known references. Its database is not a substitute for finalized chain receipts. |
 | Browser | Opens authorized evidence locally. Public synthetic demo opening material must not be reused for private cases. |
 
-The sandbox gate is a regression check, not a contract audit. Its default baseline and candidate are the same source version, so a passing run demonstrates same-schema redeployment and recovery, not an independently pinned historical schema migration. Mainnet booking deposits through Intents remain deferred.
+The [local sandbox gate](stateful-release-gate-2026-11-17.json) passed with a separately pinned deployed Testnet escrow WASM as the baseline and a newly built candidate. Their hashes differ, and [finalized code provenance](stateful-gate-code-sources.json) is recorded. It preserved funded state across redeployment, recovered a lost callback without paying twice, and rejected an intentionally corrupting migration. Nine comparisons also matched the UI projection to executed contract claims across immediate, success and fallback branches. The state fixtures were created in isolation; this is current-schema compatibility evidence, not a production-state migration or contract audit. The CI helper defaults to baseline and candidate built from the same source. Mainnet booking deposits through Intents remain deferred.
 
 ## Web release checks
 

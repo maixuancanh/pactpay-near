@@ -5,7 +5,9 @@
     "network": "testnet",
     "blockHash": "HztyQrX8Kx8inZES44JFaNKfE3dKmNCi2xqLXXHEkZfd",
     "blockHeight": 278092611,
-    "codeHash": "5VHYbe1ZjUti8ch6iBUgZu3q4TUYdk93cxsdqX19uBEk"
+    "codeHash": "5VHYbe1ZjUti8ch6iBUgZu3q4TUYdk93cxsdqX19uBEk",
+    "sha256": "42adb7b4b7bf19448714b27efb3a181b249422518f49e46a7ac30169fb7d3ea5",
+    "rpcCodeHashVerified": true
   },
   {
     "label": "baseline",
@@ -13,6 +15,8 @@
     "network": "testnet",
     "blockHash": "5u2jfa4joSvWrrvFAtKWyD7PCRrTVQmNkVYwL5uMp9TQ",
     "blockHeight": 278092613,
-    "codeHash": "2gaDc8q5iDzbF69rcuEdmNDeHFW7vNsjKbGnfHXJUTCS"
+    "codeHash": "2gaDc8q5iDzbF69rcuEdmNDeHFW7vNsjKbGnfHXJUTCS",
+    "sha256": "18fee5bf1d8cf974b2529901f99c8b938fb0edc36335173b0f3d565710c4df47",
+    "rpcCodeHashVerified": true
   }
 ]

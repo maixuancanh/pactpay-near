@@ -37,4 +37,13 @@ Negative control thật: deploy bad-migration WASM lên escrow đã được fun
 
 Manifest ghi commit, dirty state, SHA-256 từng WASM, nguồn fixture, command, exit code, output. **Baseline do build helper tạo mặc định bằng candidate**: đây là same-schema redeploy regression, không phải bằng chứng chuyển một bản release lịch sử độc lập. Khi release, thay baseline bằng WASM bản cũ đã pin. Không kiểm live deployment, snapshot production, migration đổi schema tùy ý hay mọi trạng thái pending của mọi token.
 
-CI: `.github/workflows/stateful-escrow.yml` chạy gate trên PR ảnh hưởng contract/index và cho phép workflow_dispatch. Workflow được thêm trong local checkout; chưa push hoặc chạy GitHub Actions. Mặc định CI dùng baseline/candidate cùng source để kiểm harness; release thật phải cung cấp baseline artifact đã pin riêng.
+CI: `.github/workflows/stateful-escrow.yml` chạy gate khi push nhánh triển khai, trên PR ảnh hưởng contract/index và qua workflow_dispatch. Mặc định CI dùng baseline/candidate cùng source để kiểm harness; release thật phải cung cấp baseline artifact đã pin riêng. Workflow còn chạy đo luồng hoàn thành bình thường cho nhóm 1/3/10 người trong sandbox và tải JSON kết quả thành artifact. Chi phí AI, tranh chấp và phí mainnet không nằm trong phép đo này.
+
+
+## Kết quả thực chạy ngày 17/11/2026
+
+[Manifest local](stateful-release-gate-2026-11-17.json) đã **passed**: replay, baseline, candidate, stateful upgrade, callback-loss recovery đều exit 0; migration cố ý làm sai state exit 1 và `expectedFailureDetected=true`. Baseline của lượt này là WASM lấy read-only từ escrow Testnet đang deploy, candidate là WASM mới build, hai SHA-256 khác nhau (`baselineEqualsCandidate=false`). [Nguồn code đã pin](stateful-gate-code-sources.json) ghi block finalized, account, codeHash và SHA-256 đã đối chiếu; provenance cũng nằm trong manifest. State được tạo trong sandbox, không phải bản sao dữ liệu người dùng trên chain; đây vẫn là kiểm tra tương thích schema hiện tại, không chứng minh mọi migration đổi schema.
+
+`node scripts/near/check-preview-contract-parity.mjs docs/near/stateful-release-gate-2026-11-17.json` đã passed 9 phép so sánh. Script import đúng `previewAllocation` của UI, dùng proposal thực đã gửi trong sandbox, so immediate và tổng immediate + phần thêm ở success/fallback với claims thực thi bằng WASM. Ví dụ success UI thêm 8 sau immediate 12 nên tổng contract là 20; fallback thêm buyer 5 / merchant 3 nên tổng là buyer 5 / merchant 15.
+
+[Cost baseline 1/3/10](sandbox-cost-2026-11-17.json) cũng đã chạy thành công trên sandbox. Report có hash token/candidate, thời điểm file kết quả được ghi và ranh giới phép đo; không có AI billing hoặc phí mainnet được suy diễn. CI mặc định vẫn dùng cùng source cho baseline/candidate, còn lượt local nói trên dùng artifact Testnet đã pin riêng.

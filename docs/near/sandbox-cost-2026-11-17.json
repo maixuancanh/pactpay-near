@@ -1,0 +1,295 @@
+{
+  "schema": "pactpay.sandbox-cost.v1",
+  "environment": "isolated-sandbox",
+  "flow": "create, accept, fund, capture, normal completion, claim; excludes AI and dispute/remedy branches",
+  "excluded": "Account creation, deployment, mint/distribution and token registration gas. No real fees or AI billing.",
+  "cases": [
+    {
+      "participants": 1,
+      "gasBurnt": "23827477969995",
+      "transactionSignatures": 6,
+      "bookingStorageDepositYoctoNear": "51200000000000000000000",
+      "newBuyerTokenRegistrationDepositYoctoNear": "1250000000000000000000",
+      "aiCalls": 0,
+      "aiTokenUsage": null,
+      "methods": [
+        {
+          "method": "create_booking",
+          "gasBurnt": "2224001132542"
+        },
+        {
+          "method": "accept",
+          "gasBurnt": "2247608460311"
+        },
+        {
+          "method": "ft_transfer_call",
+          "gasBurnt": "6664655755808"
+        },
+        {
+          "method": "capture",
+          "gasBurnt": "2236373636120"
+        },
+        {
+          "method": "confirm_completion",
+          "gasBurnt": "2707322351620"
+        },
+        {
+          "method": "claim_v2",
+          "gasBurnt": "7747516633594"
+        }
+      ]
+    },
+    {
+      "participants": 3,
+      "gasBurnt": "63256981074933",
+      "transactionSignatures": 14,
+      "bookingStorageDepositYoctoNear": "133120000000000000000000",
+      "newBuyerTokenRegistrationDepositYoctoNear": "3750000000000000000000",
+      "aiCalls": 0,
+      "aiTokenUsage": null,
+      "methods": [
+        {
+          "method": "create_booking",
+          "gasBurnt": "2275414334770"
+        },
+        {
+          "method": "accept",
+          "gasBurnt": "2304995287829"
+        },
+        {
+          "method": "ft_transfer_call",
+          "gasBurnt": "6731075371190"
+        },
+        {
+          "method": "accept",
+          "gasBurnt": "2305010097437"
+        },
+        {
+          "method": "ft_transfer_call",
+          "gasBurnt": "6731094294578"
+        },
+        {
+          "method": "accept",
+          "gasBurnt": "2305010097437"
+        },
+        {
+          "method": "ft_transfer_call",
+          "gasBurnt": "6731094294578"
+        },
+        {
+          "method": "capture",
+          "gasBurnt": "2293788437342"
+        },
+        {
+          "method": "confirm_completion",
+          "gasBurnt": "2765366704306"
+        },
+        {
+          "method": "claim_v2",
+          "gasBurnt": "7756653088714"
+        },
+        {
+          "method": "confirm_completion",
+          "gasBurnt": "2769881957426"
+        },
+        {
+          "method": "claim_v2",
+          "gasBurnt": "7756661316274"
+        },
+        {
+          "method": "confirm_completion",
+          "gasBurnt": "2774274476778"
+        },
+        {
+          "method": "claim_v2",
+          "gasBurnt": "7756661316274"
+        }
+      ]
+    },
+    {
+      "participants": 10,
+      "gasBurnt": "206306372365149",
+      "transactionSignatures": 42,
+      "bookingStorageDepositYoctoNear": "419840000000000000000000",
+      "newBuyerTokenRegistrationDepositYoctoNear": "12500000000000000000000",
+      "aiCalls": 0,
+      "aiTokenUsage": null,
+      "methods": [
+        {
+          "method": "create_booking",
+          "gasBurnt": "2431046358766"
+        },
+        {
+          "method": "accept",
+          "gasBurnt": "2495667750226"
+        },
+        {
+          "method": "ft_transfer_call",
+          "gasBurnt": "6918079532571"
+        },
+        {
+          "method": "accept",
+          "gasBurnt": "2495682559834"
+        },
+        {
+          "method": "ft_transfer_call",
+          "gasBurnt": "6918098455959"
+        },
+        {
+          "method": "accept",
+          "gasBurnt": "2495682559834"
+        },
+        {
+          "method": "ft_transfer_call",
+          "gasBurnt": "6918098455959"
+        },
+        {
+          "method": "accept",
+          "gasBurnt": "2495682559834"
+        },
+        {
+          "method": "ft_transfer_call",
+          "gasBurnt": "6918098455959"
+        },
+        {
+          "method": "accept",
+          "gasBurnt": "2495682559834"
+        },
+        {
+          "method": "ft_transfer_call",
+          "gasBurnt": "6918098455959"
+        },
+        {
+          "method": "accept",
+          "gasBurnt": "2495682559834"
+        },
+        {
+          "method": "ft_transfer_call",
+          "gasBurnt": "6918098455959"
+        },
+        {
+          "method": "accept",
+          "gasBurnt": "2495682559834"
+        },
+        {
+          "method": "ft_transfer_call",
+          "gasBurnt": "6918098455959"
+        },
+        {
+          "method": "accept",
+          "gasBurnt": "2495682559834"
+        },
+        {
+          "method": "ft_transfer_call",
+          "gasBurnt": "6918098455959"
+        },
+        {
+          "method": "accept",
+          "gasBurnt": "2495682559834"
+        },
+        {
+          "method": "ft_transfer_call",
+          "gasBurnt": "6918098455959"
+        },
+        {
+          "method": "accept",
+          "gasBurnt": "2495682559834"
+        },
+        {
+          "method": "ft_transfer_call",
+          "gasBurnt": "6918098455959"
+        },
+        {
+          "method": "capture",
+          "gasBurnt": "2484509400493"
+        },
+        {
+          "method": "confirm_completion",
+          "gasBurnt": "2958410539722"
+        },
+        {
+          "method": "claim_v2",
+          "gasBurnt": "7756653088714"
+        },
+        {
+          "method": "confirm_completion",
+          "gasBurnt": "2960652374890"
+        },
+        {
+          "method": "claim_v2",
+          "gasBurnt": "7756661316274"
+        },
+        {
+          "method": "confirm_completion",
+          "gasBurnt": "2962636687430"
+        },
+        {
+          "method": "claim_v2",
+          "gasBurnt": "7756661316274"
+        },
+        {
+          "method": "confirm_completion",
+          "gasBurnt": "2964810233850"
+        },
+        {
+          "method": "claim_v2",
+          "gasBurnt": "7756661316274"
+        },
+        {
+          "method": "confirm_completion",
+          "gasBurnt": "2966794546390"
+        },
+        {
+          "method": "claim_v2",
+          "gasBurnt": "7756661316274"
+        },
+        {
+          "method": "confirm_completion",
+          "gasBurnt": "2969017458170"
+        },
+        {
+          "method": "claim_v2",
+          "gasBurnt": "7756661316274"
+        },
+        {
+          "method": "confirm_completion",
+          "gasBurnt": "2971395095181"
+        },
+        {
+          "method": "claim_v2",
+          "gasBurnt": "7758146147610"
+        },
+        {
+          "method": "confirm_completion",
+          "gasBurnt": "2973554654749"
+        },
+        {
+          "method": "claim_v2",
+          "gasBurnt": "7758146147610"
+        },
+        {
+          "method": "confirm_completion",
+          "gasBurnt": "2975538967289"
+        },
+        {
+          "method": "claim_v2",
+          "gasBurnt": "7758146147610"
+        },
+        {
+          "method": "confirm_completion",
+          "gasBurnt": "2977685362761"
+        },
+        {
+          "method": "claim_v2",
+          "gasBurnt": "7758146147610"
+        }
+      ]
+    }
+  ],
+  "artifacts": {
+    "tokenSha256": "42adb7b4b7bf19448714b27efb3a181b249422518f49e46a7ac30169fb7d3ea5",
+    "escrowSha256": "8798cce049df7f34732fbf1feca9cf99db9a7dc9cedd6e7bbde9c826ccafd2d3"
+  },
+  "resultFileWrittenAt": "2026-11-17T12:22:18.839Z",
+  "provenanceNote": "Hashes identify exact token and candidate paths used in the recorded local command; resultFileWrittenAt is filesystem completion time, not a measured start timestamp."
+}

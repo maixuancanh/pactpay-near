@@ -10,6 +10,8 @@ on:
       - 'lib/near-case-index.mjs'
       - 'scripts/near/case-index*'
       - 'scripts/near/*stateful*'
+      - 'scripts/near/check-preview-contract-parity.mjs'
+      - 'src/near/agreements/outcome-preview.ts'
       - '.github/workflows/stateful-escrow.yml'
 permissions:
   contents: read
@@ -39,6 +41,8 @@ jobs:
         run: |
           fixture="$RUNNER_TEMP/pactpay-fixtures"
           node scripts/near/stateful-release-gate.mjs "$fixture/token.wasm" "$fixture/baseline.wasm" "$fixture/candidate.wasm" "$fixture/callback-fault.wasm" "$fixture/bad-migration.wasm" stateful-gate-result.json
+      - name: Compare UI projection with executed contract outcomes
+        run: node scripts/near/check-preview-contract-parity.mjs stateful-gate-result.json
       - name: Measure isolated 1, 3 and 10 participant lifecycle costs
         run: |
           fixture="$RUNNER_TEMP/pactpay-fixtures"

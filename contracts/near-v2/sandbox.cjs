@@ -210,6 +210,7 @@ async function main() {
     assert.equal(await balance(merchant), '55');
     assert.equal(await balance(buyers[1]), '15');
     console.log(JSON.stringify({schema:'pactpay.sandbox-scenarios.v1',environment:'isolated-sandbox',
+      proposals:{success:active,fallback},
       immediate:{buyer:'0',merchant:immediate.amount,retained:'8'},
       success:{buyer:'0',merchant:String(BigInt(immediate.amount)+BigInt(bonus.amount)),retained:'0'},
       fallback:{buyer:fallbackClaims.filter(record=>record.recipient===buyers[1].accountId).reduce((n,record)=>n+BigInt(record.amount),0n).toString(),

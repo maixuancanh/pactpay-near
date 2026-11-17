@@ -1,12 +1,15 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
+const {createHash} = require('node:crypto');
 const {Worker} = require('near-workspaces');
 const [tokenWasm,escrowWasm,output] = process.argv.slice(2);
 const gas = '100000000000000';
 async function main() {
   assert.ok(tokenWasm && escrowWasm && output,'Pass token.wasm escrow.wasm output.json');
   const worker = await Worker.init();
-  const report = {schema:'pactpay.sandbox-cost.v1',environment:'isolated-sandbox',
+  const report = {schema:'pactpay.sandbox-cost.v1',environment:'isolated-sandbox',startedAt:new Date().toISOString(),
+    artifacts:{tokenSha256:createHash('sha256').update(await fs.readFile(tokenWasm)).digest('hex'),
+      escrowSha256:createHash('sha256').update(await fs.readFile(escrowWasm)).digest('hex')},
     flow:'create, accept, fund, capture, normal completion, claim; excludes AI and dispute/remedy branches',
     excluded:'Account creation, deployment, mint/distribution and token registration gas. No real fees or AI billing.',cases:[]};
   try {
@@ -58,6 +61,7 @@ async function main() {
         aiCalls:0,aiTokenUsage:null,methods});
     }
     assert.equal(await token.view('ft_balance_of',{account_id:escrow.accountId}),'0');
+    report.finishedAt=new Date().toISOString();
     await fs.writeFile(output,JSON.stringify(report,null,2)+'\n');
     console.log(JSON.stringify(report));
   } finally {await worker.tearDown();}

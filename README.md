@@ -21,7 +21,7 @@ node scripts/near/verify-resolution-case.mjs public/pactpay-v2-sample-proof.json
 node scripts/near/verify-resolution-case.mjs public/pactpay-v2-sample-proof.json --check-modified-sample
 ```
 
-This uses public Testnet RPC data and requires no wallet or API key. The sample proves the settlement. The separate [NEAR AI run](docs/near/testnet-resolution-v2-ai.json) records a signed encrypted transcript check. Neither public booking proof contains that transcript.
+This uses public Testnet RPC data and requires no wallet or API key. The Booking #0 sample proves its settlement. The separate [NEAR AI run](docs/near/testnet-resolution-v2-ai.json) records an encrypted transcript check. For a transcript and settlement approvals tied to the same case, use [Booking #5](docs/near/WORKSHOP-AI-CASE.md); its verifier still identifies the unavailable independent plaintext binding.
 
 ## Hackathon versions
 
