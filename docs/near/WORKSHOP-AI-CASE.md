@@ -17,7 +17,7 @@ This post-deadline case uses synthetic workshop evidence and real Testnet transa
 | Buyer confirms completion | [Confirmation](https://testnet.nearblocks.io/txns/7jYCF99QxzrNV6ZHdiRqFRc2tUZY5QM4ESc1YNMRRWFH) |
 | Final payout | [8 PDEMO](https://testnet.nearblocks.io/txns/9BCwpSgDbE5xMEdsLkepPttHsgjfbkHYTT7ZQe7FyYbE) |
 
-Download [the synthetic proof JSON](testnet-workshop-ai-proof.json), then upload it on [PactPay Verify](https://pactpay-near-testnet-web.vercel.app/verify). No wallet is needed. The excerpt keys in the file disclose only the two synthetic excerpts created for this run.
+Open [PactPay Verify](https://pactpay-near-testnet-web.vercel.app/verify) and select **Verify Booking #5**. No wallet is needed. You can also download [the synthetic proof JSON](testnet-workshop-ai-proof.json). The excerpt keys in the file disclose only the two synthetic excerpts created for this run.
 
 To check locally after installing dependencies, run:
 

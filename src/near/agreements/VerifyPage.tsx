@@ -1,3 +1,4 @@
+import workshopProofUrl from "../../../docs/near/testnet-workshop-ai-proof.json?url";
 import {useState} from "react";
 import type {FormEvent} from "react";
 import {publicResolutionProof} from "./proof";
@@ -41,16 +42,25 @@ export default function VerifyPage(){
   const [checks,setChecks]=useState<Check[]>([]);
   const [error,setError]=useState("");
   const [busy,setBusy]=useState(false);
-  const [modifiedSample, setModifiedSample] = useState(false);
-  async function verify(event?:FormEvent<HTMLFormElement>, tampered = false){
+  const [mode, setMode] = useState<"workshop" | "sample" | "modified" | "upload">("workshop");
+  async function verify(nextMode: typeof mode, event?:FormEvent<HTMLFormElement>){
     event?.preventDefault();
     const file=event ? new FormData(event.currentTarget).get("proof") : null;
-    setPayouts([]);setChecks([]);setError("");setBusy(true);setModifiedSample(tampered);
+    setPayouts([]);setChecks([]);setError("");setBusy(true);setMode(nextMode);
     try{
       if(event && (!(file instanceof File) || !file.size || file.size>4_000_000))throw Error("Select a PactPay proof JSON file.");
-      const source = file instanceof File ? await file.text() : await (await fetch("/pactpay-v2-sample-proof.json")).text();
+      let source: string;
+      if (file instanceof File) {
+        source = await file.text();
+      } else {
+        const sample = await fetch(nextMode === "workshop" ? workshopProofUrl : "/pactpay-v2-sample-proof.json", {
+          signal:AbortSignal.timeout(10000),
+        });
+        if (!sample.ok) throw Error("The sample proof could not be loaded.");
+        source = await sample.text();
+      }
       const {codeHash,proposal,digest,receipts,authorized}=JSON.parse(source);
-      if (tampered) proposal.immediateMerchant = "13";
+      if (nextMode === "modified") proposal.immediateMerchant = "13";
       const proof=publicResolutionProof({codeHash,proposal,digest,receipts});
       const response=await fetch("/api/near-verify",{method:"POST",headers:{"content-type":"application/json"},
         body:JSON.stringify(proof),
@@ -72,26 +82,29 @@ export default function VerifyPage(){
       <p>Check public transactions on NEAR Testnet. Private excerpts and their decryption keys stay in your browser.</p>
       <section aria-labelledby="workshop-demo-title">
         <h2 id="workshop-demo-title">Try a workshop dispute</h2>
-        <p>Booking #0 is a scripted Testnet case. Check the two wallet approvals and the finalized payouts. No wallet is needed.</p>
+        <p>Booking #5 links synthetic workshop evidence to a signed NEAR AI Cloud transcript and two finalized Testnet payouts. No wallet is needed.</p>
         <div className="near-verify-actions">
-          <button type="button" className="pp-primary" disabled={busy} onClick={()=>void verify()}>Verify sample booking</button>
-          <button type="button" className="pp-secondary" disabled={busy} onClick={()=>void verify(undefined, true)}>Check a modified proof</button>
-          <a href="/pactpay-v2-sample-proof.json" download>Download sample JSON</a>
+          <button type="button" className="pp-primary" disabled={busy} onClick={()=>void verify("workshop")}>Verify Booking #5</button>
+          <button type="button" className="pp-secondary" disabled={busy} onClick={()=>void verify("modified")}>Check a modified proof</button>
+          <a href={workshopProofUrl} download="pactpay-booking-5-proof.json">Download Booking #5 proof</a>
         </div>
+        <p>The modified example uses Booking #0 and checks whether a changed amount is rejected.</p>
+        <button type="button" className="pp-secondary" disabled={busy} onClick={()=>void verify("sample")}>Verify original Booking #0</button>
         <p>Booking #2 is the separate two-wallet demo. It shows how the buyer and merchant agreed to release 12 PDEMO and hold 8 until the buyer confirmed the fix.</p>
         <a href="/booking?booking=2&escrow=escrow-v2.pactpay-530c506b.testnet">Open Booking #2</a>
       </section>
       <section aria-labelledby="privacy-boundary-title">
         <h2 id="privacy-boundary-title">Who can see the evidence?</h2>
         <p>NEAR records wallet addresses, amounts and commitments. The buyer and merchant can open the excerpts shared with them. When a participant requests an assessment, PactPay encrypts the selected excerpts and terms for NEAR AI Cloud. The assessment cannot release funds.</p>
-        <p>The public sample contains no AI transcript or private excerpts. To check a private export, load it below. The browser sends only the public agreement to the verification API.</p>
+        <p>Booking #5 includes copies of synthetic evidence and the keys for those excerpts. When you load your own export, the browser sends only the public agreement to the verification API.</p>
       </section>
       <h2>Check your own proof</h2>
-      <form className="pp-form" onSubmit={event=>void verify(event)}>
+      <form className="pp-form" onSubmit={event=>void verify("upload", event)}>
         <label>Agreement proof<input name="proof" type="file" accept=".json,application/json" required/></label>
         <button className="pp-primary" disabled={busy}>{busy ? "Checking…" : "Verify agreement"}</button>
       </form>
-      {modifiedSample && <p>Sample changes the immediate merchant payout from 12 to 13 PDEMO. The verifier checks it against the original agreement. This test sends no transaction.</p>}
+      {mode === "modified" && <p>Sample changes the immediate merchant payout from 12 to 13 PDEMO. The verifier checks it against the original agreement. This test sends no transaction.</p>}
+      {checks.length > 0 && <h2>{mode === "workshop" ? "Booking #5 results" : mode === "modified" ? "Modified proof results" : "Verification results"}</h2>}
       {payouts.length > 0 && <ul aria-label="Finalized payout transactions">{payouts.map(({id,hash,amount})=>
         <li key={id}><a href={"https://testnet.nearblocks.io/txns/"+encodeURIComponent(hash)} target="_blank" rel="noreferrer">
           View {amount} PDEMO payout on NEAR
