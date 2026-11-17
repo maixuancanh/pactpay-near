@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from "react";
 import type {FormEvent} from "react";
 import {NearConnector} from "@hot-labs/near-connect";
-import {chainTime, commitment, DAY, escrow as legacyEscrow, finalTransaction, parseBookingId, rpcUrl, view} from "./chain";
+import {chainTime, commitment, DAY, escrow as legacyEscrow, finalizedBlock, finalTransaction, parseBookingId, rpcUrl, UnknownTransactionError, view} from "./chain";
 import {v2Escrow} from "./agreements/chain-v2";
 import {queueCaseReference, retryCaseReferences} from "./agreements/transaction-journal";
 import ResolutionWorkspace from "./agreements/ResolutionWorkspace";
@@ -25,7 +25,13 @@ const walletConnector = () => connector ??= new NearConnector({
   network: "testnet", providers: {testnet: [rpcUrl]},
 });
 type Call = (receiver: string, method: string, args: Record<string, unknown>, deposit?: string) => Promise<string | undefined>;
-type Attempt = { hash: string; sender: string; receiver: string; method: string };
+type Attempt = {
+  hash: string;
+  sender: string;
+  receiver: string;
+  method: string;
+  booking?: { fundingDeadline: number; termsCommitment: string };
+};
 const initialParams = new URLSearchParams(location.search);
 const requestedEscrow = initialParams.get("escrow");
 const initialBooking = initialParams.get("booking");
@@ -246,7 +252,7 @@ export default function NearBooking() {
   }, []);
 
   async function reconcile(attempt: Attempt) {
-    const result = await finalTransaction(attempt.hash, attempt.sender);
+    const result = await finalTransaction(attempt.hash, attempt.sender, resolutionV2 && attempt.method === "create_booking");
     const status = result.status;
     if (!status || (status.Failure === undefined && typeof status.SuccessValue !== "string")) {
       throw new Error("Transaction outcome is still pending. Check again before signing.");
@@ -256,6 +262,40 @@ export default function NearBooking() {
     if (status.Failure !== undefined) throw new Error("Transaction failed on NEAR. Review the current booking before trying again.");
     if (resolutionV2 && attempt.receiver === escrow) queueCaseReference(escrow,attempt);
     return status.SuccessValue;
+  }
+
+  async function recoverExpiredCreate(attempt: Attempt) {
+    if (!resolutionV2 || attempt.receiver !== escrow || attempt.method !== "create_booking" || !attempt.booking) {
+      throw new Error("NEAR has no record of this transaction yet. This older request lacks the information needed for automatic recovery.");
+    }
+    const {fundingDeadline, termsCommitment} = attempt.booking;
+    const block = await finalizedBlock();
+    if (!block.hash || block.time < fundingDeadline) {
+      throw new Error("NEAR has no record of this transaction yet. Check again after the funding deadline.");
+    }
+    // V2 booking IDs are contiguous and bookings are retained by the contract.
+    // Check them at one finalized block so the result cannot change during lookup.
+    for (let start = 0; start < 128; start += 8) {
+      const ids = Array.from({length:8}, (_, index) => start + index);
+      const bookings = await Promise.all(ids.map(id => view<Booking|null>(escrow,"get_booking",{id},block.hash)));
+      const match = bookings.findIndex(booking => booking?.merchant === attempt.sender &&
+        booking.terms_commitment === termsCommitment && booking.fund_until === String(fundingDeadline));
+      if (match >= 0) {
+        await read(ids[match]);
+        showBooking();
+        if (loadAttempt()?.hash === attempt.hash) localStorage.removeItem(attemptKey);
+        setPending(null);
+        setFeedback("Found the booking on NEAR Testnet.");
+        return;
+      }
+      if (bookings.some(booking => booking === null)) {
+        if (loadAttempt()?.hash === attempt.hash) localStorage.removeItem(attemptKey);
+        setPending(null);
+        setFeedback("The funding deadline passed and no matching booking was found. Set new deadlines and try again.");
+        return;
+      }
+    }
+    throw new Error("The booking could not be ruled out within the recovery scan. The request is still pending.");
   }
 
   const call: Call = async (receiver, method, args, deposit = "0") => {
@@ -364,7 +404,8 @@ export default function NearBooking() {
         if (socialCreator && popup) {
           let attempt: Attempt | undefined;
           await signSocialBooking(popup,socialCreator,escrow,args,storageDeposit,hash=>{
-            attempt = {hash,sender:socialCreator,receiver:escrow,method:"create_booking"};
+            attempt = {hash,sender:socialCreator,receiver:escrow,method:"create_booking",
+              booking:{fundingDeadline:fund,termsCommitment:terms_commitment}};
             localStorage.setItem(attemptKey,JSON.stringify(attempt));
             setPending(attempt);
             setLastHash(hash);
@@ -646,7 +687,14 @@ export default function NearBooking() {
       </section>}
       {pending && <p role="status">Pending {pending.method} · <code>{pending.hash}</code>{" "}
         <button className="pp-secondary" disabled={busy} onClick={() => void run(async () => {
-          const result = await reconcile(pending);
+          let result;
+          try {
+            result = await reconcile(pending);
+          } catch (error) {
+            if (!(error instanceof UnknownTransactionError) || pending.method !== "create_booking") throw error;
+            await recoverExpiredCreate(pending);
+            return;
+          }
           if (pending.method === "create_booking") {
             await read(parseBookingId(atob(result || "")));
             showBooking();
