@@ -1,0 +1,53 @@
+name: Stateful escrow regression
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/privacy-case-verification]
+  pull_request:
+    paths:
+      - 'contracts/near-v2/**'
+      - 'contracts/near/demo-token/**'
+      - 'lib/near-case-index.mjs'
+      - 'scripts/near/case-index*'
+      - 'scripts/near/*stateful*'
+      - '.github/workflows/stateful-escrow.yml'
+permissions:
+  contents: read
+jobs:
+  sandbox:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: rustup toolchain install nightly --component rust-src --profile minimal
+      - name: Install sandbox dependencies
+        run: |
+          npm install --prefix contracts/near-v2 --ignore-scripts
+          contracts/near-v2/node_modules/.bin/near-sandbox --version
+          binary=$(find contracts/near-v2/node_modules/near-sandbox/bin -type f -name near-sandbox -print -quit)
+          test -n "$binary"
+          echo "NEAR_SANDBOX_BIN_PATH=$PWD/$binary" >> "$GITHUB_ENV"
+          echo "NEAR_SANDBOX_BINARY_PATH=$PWD/$(dirname "$binary")" >> "$GITHUB_ENV"
+      - name: Build isolated healthy and deliberately faulty WASMs
+        run: bash scripts/near/build-stateful-fixtures.sh "$RUNNER_TEMP/pactpay-fixtures"
+      - name: Require positive checks and actual bad migration rejection
+        run: |
+          fixture="$RUNNER_TEMP/pactpay-fixtures"
+          node scripts/near/stateful-release-gate.mjs "$fixture/token.wasm" "$fixture/baseline.wasm" "$fixture/candidate.wasm" "$fixture/callback-fault.wasm" "$fixture/bad-migration.wasm" stateful-gate-result.json
+      - name: Measure isolated 1, 3 and 10 participant lifecycle costs
+        run: |
+          fixture="$RUNNER_TEMP/pactpay-fixtures"
+          node contracts/near-v2/sandbox-cost.cjs "$fixture/token.wasm" "$fixture/candidate.wasm" sandbox-cost-result.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stateful-gate-result
+          path: |
+            stateful-gate-result.json
+            sandbox-cost-result.json
+          if-no-files-found: warn

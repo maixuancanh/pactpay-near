@@ -141,3 +141,23 @@ test("V2 inference ticket is unavailable without configuration and scoped to fin
     else process.env.NEARAI_API_KEY=previous;
   }
 });
+
+test("V2 AI budget is read-only, participant scoped and remains bounded under concurrent requests",async()=>{
+  const {post,login}=setup();
+  const buyer=await login(BUYER);
+  const outsider=await login("outsider.testnet");
+  const previous=process.env.NEARAI_API_KEY;
+  process.env.NEARAI_API_KEY="synthetic-key";
+  try {
+    assert.equal((await post({...scope,action:"ai_budget"},outsider)).code,403);
+    const before=await post({...scope,action:"ai_budget"},buyer);
+    assert.equal(before.data.budget.remaining,3);
+    assert.equal((await post({...scope,action:"ai_budget"},buyer)).data.budget.remaining,3);
+    const replies=await Promise.all(Array.from({length:8},()=>post({...scope,action:"ai_ticket"},buyer)));
+    assert.equal(replies.filter(reply=>reply.code===200).length,3);
+    assert.equal(replies.filter(reply=>reply.code===429).length,5);
+    assert.equal((await post({...scope,action:"ai_budget"},buyer)).data.budget.remaining,0);
+  } finally {
+    if(previous===undefined) delete process.env.NEARAI_API_KEY; else process.env.NEARAI_API_KEY=previous;
+  }
+});

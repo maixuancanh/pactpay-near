@@ -1,0 +1,59 @@
+{
+  "schema": "pactpay.stateful-gate.v1",
+  "startedAt": "2026-11-17T12:15:53.282Z",
+  "commit": "53f0090f938f402cbec7be91bff005c6adda3d18",
+  "workingTreeDirty": true,
+  "artifacts": {
+    "token": {
+      "path": "/mnt/c/Users/XuanCanh/Documents/Codex/2026-11-12/c/outputs/pactpay-gate-token.wasm",
+      "sha256": "42adb7b4b7bf19448714b27efb3a181b249422518f49e46a7ac30169fb7d3ea5"
+    },
+    "baseline": {
+      "path": "/mnt/c/Users/XuanCanh/Documents/Codex/2026-11-12/c/outputs/pactpay-gate-baseline.wasm",
+      "sha256": "18fee5bf1d8cf974b2529901f99c8b938fb0edc36335173b0f3d565710c4df47"
+    },
+    "candidate": {
+      "path": "/tmp/pactpay-gate-20261117-cpumvp/candidate.wasm",
+      "sha256": "8798cce049df7f34732fbf1feca9cf99db9a7dc9cedd6e7bbde9c826ccafd2d3"
+    },
+    "fault": {
+      "path": "/tmp/pactpay-gate-20261117-cpumvp/callback-fault.wasm",
+      "sha256": "0fc17d873257aee7fe2c36a5881970e64672a7ed053e5a99c4a17d643da2e74f"
+    },
+    "badMigration": {
+      "path": "/tmp/pactpay-gate-20261117-cpumvp/bad-migration.wasm",
+      "sha256": "16cac52ecc675a7a39ce86243ba9d2b6607403d115f6fb8ae059275bab87ed34"
+    }
+  },
+  "baselineEqualsCandidate": false,
+  "snapshotSource": "Isolated near-workspaces sandbox fixtures, not a production snapshot",
+  "scope": "Baseline/candidate funded state read compatibility, behavior, conservation, callback-loss recovery",
+  "limitation": "Healthy upgrade preserves current Borsh schema; the injected migration corrupts one funded share in isolated sandbox.",
+  "checks": [
+    {
+      "name": "replay",
+      "command": [
+        "/home/enzo95/.local/opt/node-v24.18.0-linux-x64/bin/node",
+        "--test",
+        "scripts/near/case-index.test.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": "✔ uses the chain event scope and rejects forged or unrelated transaction references (4.503453ms)\n✔ parent success does not prove a failed child receipt (0.285121ms)\n✔ finds a matching historical Paid claim after the first page (0.307359ms)\n✔ concurrent receipt indexing produces one durable scope-scoped record (1.141714ms)\n✔ pending and unavailable lookups leave the index untouched (0.483939ms)\n✔ replay survives interruption after every write without dropping older events (541.514391ms)\n✔ replay rejects wrong contract and never checkpoints unfinalized receipts (0.489901ms)\n✔ a terminated worker resumes from disk without relying on process memory (6671.194073ms)\nℹ tests 8\nℹ suites 0\nℹ pass 8\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 9415.5778\n",
+      "stderr": ""
+    },
+    {
+      "name": "baseline",
+      "command": [
+        "/home/enzo95/.local/opt/node-v24.18.0-linux-x64/bin/node",
+        "contracts/near-v2/sandbox.cjs",
+        "/mnt/c/Users/XuanCanh/Documents/Codex/2026-11-12/c/outputs/pactpay-gate-token.wasm",
+        "/mnt/c/Users/XuanCanh/Documents/Codex/2026-11-12/c/outputs/pactpay-gate-baseline.wasm"
+      ],
+      "exitCode": 1,
+      "stdout": "Receipt: Cb1E8Zo9Viztz7QfYnTUHjMfkAd5SGU85Dyn68194pCE\n",
+      "stderr": "\tFailure [token.test.near]: Error: {\"index\":0,\"kind\":{\"index\":0,\"kind\":{\"FunctionCallError\":{\"CompilationError\":{\"PrepareError\":\"Deserialization\"}}}}}\nTransactionError: {\"result\":{\"final_execution_status\":\"EXECUTED_OPTIMISTIC\",\"receipts_outcome\":[{\"block_hash\":\"2vtcU6z6UaRQAfc79QZCPDbnt78hkV1V8UKmwzHf4ZDM\",\"id\":\"8RMc3CM4MFpHW13AndnHTY24xV4Aq1nm5wn4Q8XvRiRB\",\"outcome\":{\"executor_id\":\"token.test.near\",\"gas_burnt\":888153409228,\"logs\":[],\"metadata\":{\"gas_profile\":[],\"version\":3},\"receipt_ids\":[\"Cb1E8Zo9Viztz7QfYnTUHjMfkAd5SGU85Dyn68194pCE\"],\"status\":{\"Failure\":{\"ActionError\":{\"index\":0,\"kind\":{\"FunctionCallError\":{\"CompilationError\":{\"PrepareError\":\"Deserialization\"}}}}}},\"tokens_burnt\":\"88815340922800000000\"},\"proof\":[]}],\"status\":{\"Failure\":{\"ActionError\":{\"index\":0,\"kind\":{\"FunctionCallError\":{\"CompilationError\":{\"PrepareError\":\"Deserialization\"}}}}}},\"transaction\":{\"actions\":[{\"FunctionCall\":{\"args\":\"eyJvd25lcl9pZCI6InRlc3QubmVhciIsInN1cHBseSI6IjIwMCJ9\",\"deposit\":\"0\",\"gas\":30000000000000,\"method_name\":\"new\"}}],\"hash\":\"5JAUGmkNaah9gAg967K6QivUfmDVvcrLyxsj74zRoE7h\",\"nonce\":8,\"priority_fee\":0,\"public_key\":\"ed25519:BD5LL8ZkhfkViu4RN9Yg8McV2ijW6MUW1DQQdjMJt6Si\",\"receiver_id\":\"token.test.near\",\"signature\":\"ed25519:4dhkwQrCDqy8P4AXSWBJdy4RDB7dSyMWXAGDECeupSqVA7UNAEJGPctx2WRHgCU3EYgrYQivwTRVXnU3x6LP3F8h\",\"signer_id\":\"test.near\"},\"transaction_outcome\":{\"block_hash\":\"8MxUNbJd1yMcfhqvtbqrZiopj5YnsdZK4VR6jxLbaCRR\",\"id\":\"5JAUGmkNaah9gAg967K6QivUfmDVvcrLyxsj74zRoE7h\",\"outcome\":{\"executor_id\":\"test.near\",\"gas_burnt\":310062216030,\"logs\":[],\"metadata\":{\"gas_profile\":null,\"version\":1},\"receipt_ids\":[\"8RMc3CM4MFpHW13AndnHTY24xV4Aq1nm5wn4Q8XvRiRB\"],\"status\":{\"SuccessReceiptId\":\"8RMc3CM4MFpHW13AndnHTY24xV4Aq1nm5wn4Q8XvRiRB\"},\"tokens_burnt\":\"31006221603000000000\"},\"proof\":[]}},\"startMs\":1794917784877,\"endMs\":1794917786395,\"config\":{\"network\":\"sandbox\",\"rootAccountId\":\"test.near\",\"rpcAddr\":\"http://127.0.0.1:25375\",\"initialBalance\":\"100000000000000000000000000\",\"homeDir\":\"/tmp/sandbox/cc957134-0be3-4156-9505-41f157f96690\",\"port\":25375,\"rm\":false,\"refDir\":null}}\n    at Account.call (/tmp/pactpay-near-sandbox/node_modules/near-workspaces/dist/account/account.js:189:19)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async main (/mnt/c/Users/XuanCanh/Documents/Codex/2026-11-12/c/work/pactpay-privacy-case/contracts/near-v2/sandbox.cjs:22:5)\n"
+    }
+  ],
+  "status": "failed",
+  "finishedAt": "2026-11-17T12:16:30.424Z"
+}

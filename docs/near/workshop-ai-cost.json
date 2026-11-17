@@ -1,0 +1,43 @@
+{
+  "schema": "pactpay.case-cost.v1",
+  "measuredAt": "2026-11-17T12:04:56.120Z",
+  "network": "testnet",
+  "escrow": "escrow-v2.pactpay-530c506b.testnet",
+  "booking": "5",
+  "scope": "Only proposal, approval and claim transactions listed in this proof; not the full booking lifecycle.",
+  "rows": [
+    {
+      "step": "proposal",
+      "hash": "J8w8gLrgzqiZ3kTi7PtrYubDpdjfFjQbdri6QfFz3Rie",
+      "signer": "pactpay-530c506b.testnet",
+      "gasBurnt": "3141322168655",
+      "tokensBurntYoctoNEAR": "291813960615500000000"
+    },
+    {
+      "step": "approval",
+      "hash": "2sHpngxweBJ78wXsxQXfNK7Vs8LneHBNSUBj8xJDf2xw",
+      "signer": "b05bfd.pactpay-530c506b.testnet",
+      "gasBurnt": "3377755504589",
+      "tokensBurntYoctoNEAR": "315457294208900000000"
+    },
+    {
+      "step": "claim-1",
+      "hash": "7ciYsPY2iQJYx3YCeJHAp46JAai8NWmgkdKFCZoh8gUD",
+      "signer": "pactpay-530c506b.testnet",
+      "gasBurnt": "8524924816934",
+      "tokensBurntYoctoNEAR": "785537712943400000000"
+    },
+    {
+      "step": "claim-2",
+      "hash": "9BCwpSgDbE5xMEdsLkepPttHsgjfbkHYTT7ZQe7FyYbE",
+      "signer": "pactpay-530c506b.testnet",
+      "gasBurnt": "8523090109490",
+      "tokensBurntYoctoNEAR": "785354242199000000000"
+    }
+  ],
+  "totalGasBurnt": "23567092599668",
+  "totalTokensBurntYoctoNEAR": "2178163209966800000000",
+  "storageDeposit": "Not measured: attached deposits are not equivalent to net storage cost.",
+  "aiCost": "Not measured: this proof does not include provider billing.",
+  "multiParticipantBaseline": "Not measured: no extrapolation from one participant."
+}

@@ -130,6 +130,10 @@ test("binds Paid ledger records to finalized token movement and rejects a recipi
     };
   }
   assert.equal(status(await verifyResolutionCase(claimBundle,rpc(false,false)),"claimPayments"),"Passed");
+  const duplicate={...claimBundle,receipts:{...claimBundle.receipts,claims:[...claimRefs,claimRefs[0]]}};
+  const repeated=await verifyResolutionCase(duplicate,rpc(false,false));
+  assert.equal(status(repeated,"claimPayments"),"Failed");
+  assert.match(repeated.checks.find(check=>check.name==="claimPayments").detail,/Duplicate claim history/);
   assert.equal(status(await verifyResolutionCase(claimBundle,rpc(true,false)),"claimPayments"),"Failed");
   assert.equal(status(await verifyResolutionCase(claimBundle,rpc(false,true)),"claimPayments"),"Failed");
 });
@@ -226,4 +230,19 @@ test("decrypts authorized evidence and detects edited plaintext, ciphertext and 
   }
   result = await verifyResolutionCase({...proof,proposal:{...bound,privateTermsCommitment:hex}},reader());
   assert.equal(status(result,"privateTermsCommitment"),"Failed");
+});
+
+test("named exported-proof mutations reject amounts, recipients and evidence roots",async()=>{
+  for (const patch of [{immediateMerchant:"13"},{merchant:"changed-recipient.testnet"},{evidenceRoot:"b".repeat(64)}]) {
+    const result=await verifyResolutionCase({...bundle,proposal:{...proposal,...patch}},reader());
+    assert.equal(status(result,"agreementDigest"),"Failed");
+    assert.equal(result.ok,false);
+  }
+});
+test("removed approval is missing evidence, not a valid or forged approval",async()=>{
+  const missing=structuredClone(bundle);
+  delete missing.receipts.approval;
+  const result=await verifyResolutionCase(missing,reader());
+  assert.equal(status(result,"bilateralApproval"),"Unavailable");
+  assert.equal(result.ok,false);
 });

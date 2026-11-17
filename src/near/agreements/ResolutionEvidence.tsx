@@ -10,6 +10,7 @@ type Profile = Awaited<ReturnType<typeof createEvidenceKey>>["profile"];
 type KeySetup = Awaited<ReturnType<typeof createEvidenceKey>>;
 type Peer = {account:string;key:JsonWebKey|null};
 type Envelope = {ciphertext:string;iv:string;wrapped:string};
+type AiBudget = {limit:number;remaining:number;resetsAt:string;maxOutputTokens:number};
 type PendingUpload = Awaited<ReturnType<typeof encryptEvidence>> & {
   kind: EvidenceKind;
   sequence: number;
@@ -80,6 +81,8 @@ function ResolutionEvidenceCase({account,escrow,booking,position,sign,onSnapshot
   const [revoke,setRevoke] = useState<EvidenceEntry>();
   const [busy,setBusy] = useState(false);
   const [status,setStatus] = useState("");
+  const [aiBudget,setAiBudget] = useState<AiBudget>();
+  const assessedInputs = useRef(new Set<string>());
   const active = useRef<AbortController|null>(null);
   useLayoutEffect(()=>()=>active.current?.abort(),[]);
   const historicalListener = useRef(onHistoricalSnapshot);
@@ -237,7 +240,17 @@ function ResolutionEvidenceCase({account,escrow,booking,position,sign,onSnapshot
     if (new TextEncoder().encode(verifiedTerms+source.text).length > 16000) {
       throw new Error("Select a shorter excerpt for the encrypted assessment.");
     }
-    const {ticket} = await request<{ticket:string}>(scope,"ai_ticket",{},session,signal);
+    const inputKey = JSON.stringify([assessmentCase,snapshot.evidenceRoot,source.entry.entryHash]);
+    const current = await request<{budget:AiBudget}>(scope,"ai_budget",{},session,signal);
+    signal.throwIfAborted();
+    setAiBudget(current.budget);
+    if (!current.budget.remaining) throw new Error("Today's AI attempts for this share are used. You can still agree manually.");
+    const repeated = assessedInputs.current.has(inputKey);
+    if (!window.confirm(`${repeated ? "You already requested analysis of this evidence and agreement version. Run it again?\n\n" : "Run an encrypted AI review?\n\n"}${current.budget.remaining} of ${current.budget.limit} attempts remain for your account on this share today (UTC). This reserves one attempt, even if the provider fails. Output is capped at ${current.budget.maxOutputTokens} tokens. AI cannot approve or pay an agreement.`)) return;
+    const {ticket,budget} = await request<{ticket:string;budget:AiBudget}>(scope,"ai_ticket",{},session,signal);
+    signal.throwIfAborted();
+    setAiBudget(budget);
+    assessedInputs.current.add(inputKey);
     const {analyzeResolutionEvidence} = await import("../claimguard");
     signal.throwIfAborted();
     const reviewScope = {...assessmentCase,evidenceRoot:snapshot.evidenceRoot};
@@ -246,7 +259,7 @@ function ResolutionEvidenceCase({account,escrow,booking,position,sign,onSnapshot
       const analysis = await analyzeResolutionEvidence(ticket,reviewScope,verifiedTerms,[{id:source.entry.entryHash,paragraphs}]);
       signal.throwIfAborted();
       onAnalysis(analysis,reviewScope);
-      setStatus("AI assessment ready to review.");
+      setStatus(`AI assessment ready to review. ${(analysis.metrics.elapsedMs/1000).toFixed(1)} seconds including verification.${analysis.metrics.usage ? ` Provider reports ${analysis.metrics.usage.totalTokens} tokens used.` : " Provider token usage unavailable."}`);
     } catch {
       throw new Error("Verified AI assessment is unavailable. You can continue with a manual agreement.");
     }
@@ -255,6 +268,9 @@ function ResolutionEvidenceCase({account,escrow,booking,position,sign,onSnapshot
   return <section className="near-evidence" aria-label="Private evidence">
     <h4>Private evidence</h4>
     <p className="pp-muted">Upload excerpts using wallet-linked encryption for the buyer and merchant.</p>
+    {onAnalysis && <p className="pp-muted">AI review: up to 3 attempts per account and share each UTC day. Each attempt reserves quota, including failed requests; no automatic retries.
+      {aiBudget && <> {aiBudget.remaining} remaining. Resets <time dateTime={aiBudget.resetsAt}>{new Date(aiBudget.resetsAt).toLocaleString()}</time>.</>}
+    </p>}
     <button type="button" className="pp-secondary" disabled={busy || !account} onClick={()=>void run(login)}>
       {session ? "Renew evidence sign-in" : "Sign in with NEAR wallet"}
     </button>

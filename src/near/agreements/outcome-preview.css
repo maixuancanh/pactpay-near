@@ -1,0 +1,17 @@
+.near-outcome-preview { margin: 20px 0; padding: 20px; border: 1px solid #cddcd7; border-radius: 12px; background: #f6faf8; }
+.near-outcome-preview header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.near-outcome-preview h5 { margin: 0; font-size: 1rem; }
+.near-outcome-preview p { line-height: 1.6; }
+.near-outcome-preview code { overflow-wrap: anywhere; }
+.near-outcome-context { font-size: .85rem; }
+.near-outcome-state { padding: 12px; border-left: 3px solid #426b5b; background: #e8f1ec; }
+.near-outcome-choices { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.near-outcome-choices button { flex: 1 1 140px; padding: 12px; border: 1px solid #abc1b7; border-radius: 8px; background: white; color: #244436; cursor: pointer; font: inherit; }
+.near-outcome-choices button[aria-pressed="true"] { background: #244436; color: white; border-color: #244436; }
+.near-outcome-choices button:focus-visible { outline: 3px solid #527e6b; outline-offset: 3px; }
+.near-outcome-amounts { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.near-outcome-amounts > div { padding: 12px; background: white; border-radius: 8px; }
+.near-outcome-amounts dt { font-size: .8rem; }
+.near-outcome-amounts dd { margin: 8px 0 0; font-size: 1.1rem; overflow-wrap: anywhere; }
+.near-outcome-amounts dd code, .near-outcome-amounts small { font-size: .75rem; }
+@media (max-width: 600px) { .near-outcome-preview { padding: 14px; } .near-outcome-amounts { grid-template-columns: 1fr; } }

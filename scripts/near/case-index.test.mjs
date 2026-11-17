@@ -101,3 +101,96 @@ test("pending and unavailable lookups leave the index untouched", async () => {
   const offline = makeCaseIndexHandler({reader:failedReader,store:store(),escrow,admit:() => true});
   assert.equal((await request(offline,"POST",ref)).status,503);
 });
+
+// Recovery performs only read RPCs and immutable history writes; it never imports
+// a wallet, signer, claim retry, or financial reconciliation client.
+test("replay survives interruption after every write without dropping older events", async () => {
+  const {replayReferences} = await import('../../lib/near-case-index.mjs');
+  const {diskStore} = await import('./case-index-replay.mjs');
+  const {mkdtemp,rm} = await import('node:fs/promises');
+  const {tmpdir} = await import('node:os');
+  const {join} = await import('node:path');
+  const older = {hash:'D'.repeat(43),signer:ref.signer};
+  const olderTx = fixture();
+  olderTx.transaction.hash = older.hash;
+  olderTx.receipts_outcome[0].id = 'E'.repeat(43);
+  olderTx.receipts_outcome[0].block_hash = 'F'.repeat(43);
+  const rpc = {transaction:async hash => hash === older.hash ? olderTx : fixture(),
+    blockHeight:async hash => hash === blockHash ? 12 : 11};
+  for (const failAt of [1,2,3]) {
+    const directory = await mkdtemp(join(tmpdir(),'pactpay-replay-'));
+    try {
+      const disk = diskStore(directory);
+      let writes = 0;
+      const crashing = {...disk,put:async (...args) => {
+        const result = await disk.put(...args);
+        if (++writes === failAt) throw new Error('process interrupted');
+        return result;
+      }};
+      await assert.rejects(replayReferences({reader:rpc,store:crashing,escrow,references:[ref]}),/interrupted/);
+      // Reopen the actual disk store, rather than carrying an in-memory checkpoint.
+      const records = await replayReferences({reader:rpc,store:diskStore(directory),escrow,
+        references:[ref,older,ref,older]});
+      assert.deepEqual(records.map(record => record.blockHeight),['11','12']);
+      assert.equal(records[1].eventId,`testnet:${escrow}:${receiptId}:0:0`);
+      assert.deepEqual(await replayReferences({reader:rpc,store:diskStore(directory),escrow,
+        references:[older,ref]}),records);
+    } finally { await rm(directory,{recursive:true,force:true}); }
+  }
+});
+
+test("replay rejects wrong contract and never checkpoints unfinalized receipts", async () => {
+  const {replayReferences} = await import('../../lib/near-case-index.mjs');
+  const tx = fixture();
+  const records = store();
+  tx.final_execution_status = 'EXECUTED_OPTIMISTIC';
+  await assert.rejects(replayReferences({reader:reader(tx),store:records,escrow,references:[ref]}),/unfinalized/);
+  assert.deepEqual(await records.list('evidence-v2/'),[]);
+  tx.final_execution_status = 'FINAL';
+  tx.receipts_outcome[0].outcome.executor_id = 'other.testnet';
+  await assert.rejects(replayReferences({reader:reader(tx),store:records,escrow,references:[ref]}));
+  assert.deepEqual(await records.list('evidence-v2/'),[]);
+});
+
+test("a terminated worker resumes from disk without relying on process memory", async () => {
+  const {replayReferences} = await import('../../lib/near-case-index.mjs');
+  const {diskStore} = await import('./case-index-replay.mjs');
+  const {mkdtemp,rm} = await import('node:fs/promises');
+  const {tmpdir} = await import('node:os');
+  const {join} = await import('node:path');
+  const {spawnSync} = await import('node:child_process');
+  for (const boundary of [1,2,3]) {
+    const directory = await mkdtemp(join(tmpdir(),'pactpay-worker-kill-'));
+    try {
+      const script = `
+        import {replayReferences} from ${JSON.stringify(new URL('../../lib/near-case-index.mjs',import.meta.url).href)};
+        import {diskStore} from ${JSON.stringify(new URL('./case-index-replay.mjs',import.meta.url).href)};
+        const store = diskStore(${JSON.stringify(directory)});
+        let writes = 0;
+        const workerStore = {...store,put:async (...args) => {
+          const saved = await store.put(...args);
+          if (++writes === ${boundary}) process.kill(process.pid,'SIGKILL');
+          return saved;
+        }};
+        await replayReferences({reader:{transaction:async () => (${JSON.stringify(fixture())}),blockHeight:async () => 12},
+          store:workerStore,escrow:${JSON.stringify(escrow)},references:[${JSON.stringify(ref)}]});
+      `;
+      const stopped = spawnSync(process.execPath,['--input-type=module','-e',script],{encoding:'utf8',timeout:15000});
+      assert.equal(stopped.error,undefined);
+      assert.notEqual(stopped.status,0);
+      assert.equal(stopped.stderr,'');
+      const reopened = diskStore(directory);
+      const restored = await replayReferences({reader:reader(),store:reopened,escrow,references:[ref,ref]});
+      assert.equal(restored.length,1);
+      assert.equal(restored[0].eventId,`testnet:${escrow}:${receiptId}:0:0`);
+    } finally { await rm(directory,{recursive:true,force:true}); }
+  }
+});
+
+test("event identity includes original log position rather than filtered-event order", async () => {
+  const tx=fixture();
+  tx.receipts_outcome[0].outcome.logs.unshift('diagnostic log');
+  const record=await indexReference(reader(tx),escrow,ref);
+  assert.equal(record.logIndex,1);
+  assert.equal(record.eventId,`testnet:${escrow}:${receiptId}:1:0`);
+});

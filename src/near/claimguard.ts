@@ -77,6 +77,7 @@ async function sha256(value: string) {
 }
 
 export async function analyzeResolutionEvidence(ticket: string, scope: AssessmentCase, terms: string, sources: readonly AssessmentSource[]) {
+  const startedAt = performance.now();
   const model = "z-ai/glm-5.3-flash";
   if (!sources.length || new Set(sources.map(source => source.id)).size !== sources.length ||
     sources.some(source => !/^[a-f0-9]{64}$/.test(source.id) || !source.paragraphs.some(paragraph => paragraph.trim()))) {
@@ -101,5 +102,7 @@ export async function analyzeResolutionEvidence(ticket: string, scope: Assessmen
   const transcriptStatus = "encrypted-transcript-verified";
   const plaintextStatus = "unavailable";
   const digest = await resolutionAssessmentDigest(scope,{model,promptVersion:assessmentPromptVersion,inputHash,outputHash,proof});
-  return {assessment,digest,id:response.id,proof,model,promptVersion:assessmentPromptVersion,inputHash,outputHash,transcriptStatus,plaintextStatus};
+  return {assessment,digest,id:response.id,proof,model,promptVersion:assessmentPromptVersion,inputHash,outputHash,transcriptStatus,plaintextStatus,
+    metrics:{elapsedMs:Math.round(performance.now()-startedAt),outputTokenLimit:900,
+      usage:response.usage ? {promptTokens:response.usage.prompt_tokens,completionTokens:response.usage.completion_tokens,totalTokens:response.usage.total_tokens} : null}};
 }

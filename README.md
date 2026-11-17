@@ -11,7 +11,7 @@ The public demo runs on **NEAR Testnet** and uses **PDEMO**, a test token with n
 For the post-deadline case that connects private AI to the signed settlement, see [Booking #5 and its downloadable proof](docs/near/WORKSHOP-AI-CASE.md).
 
 1. Open [Verify](https://pactpay-near-testnet-web.vercel.app/verify) and select **Verify Booking #5** to check the encrypted transcript, attestation, approvals, and payouts for the same workshop dispute.
-2. Select **Check a modified proof** to see the verifier reject an altered amount in Booking #0. Both checks are read-only.
+2. Select a **Test case** under the modified-proof panel to check altered amounts, recipients, booking references, evidence roots, approval references, attestation nonces or duplicate payout receipts in Booking #5. These checks are read-only; a missing approval reference is reported as incomplete evidence.
 3. Open [Booking #2](https://pactpay-near-testnet-web.vercel.app/booking?booking=2&escrow=escrow-v2.pactpay-530c506b.testnet) for the two-wallet demo. The receipt links below show the 12 and 8 PDEMO payouts.
 
 Run the public sample check locally after `npm ci`:
@@ -24,6 +24,8 @@ node scripts/near/verify-resolution-case.mjs public/pactpay-v2-sample-proof.json
 This uses public Testnet RPC data and requires no wallet or API key. The sample proves the settlement. The separate [NEAR AI run](docs/near/testnet-resolution-v2-ai.json) records a signed encrypted transcript check. Neither public booking proof contains that transcript.
 
 ## Hackathon versions
+
+The November 17 update adds an interactive agreement forecast, seven tampered-proof examples, a visible AI attempt budget, durable history replay tooling and a stateful sandbox release gate. See [verification and recovery notes](docs/near/RELIABILITY-UPDATE.md) for measured results and boundaries.
 
 PactPay started as a group-booking and payment project. The NEAR entry added Testnet escrow, private dispute evidence, NEAR AI review and receipt verification. Use [1040a12](https://github.com/maixuancanh/pactpay-near/tree/1040a12) for the repository snapshot published before the deadline. [9afb5c2](https://github.com/maixuancanh/pactpay-near/tree/9afb5c2) is a post-deadline update that adds the verifiable-service and NEAR Auth changes. Subsequent verifier changes are also post-deadline.
 
@@ -95,13 +97,13 @@ npm ci
 npm run dev
 ```
 
-Open [localhost:5178](http://127.0.0.1:5178). For Testnet chain reads, copy `.env.example` to `.env.local` and set `VITE_NEAR_ESCROW_V2=escrow-v2.pactpay-530c506b.testnet`. The public RPC can be set with `VITE_NEAR_RPC`.
+Open [localhost:5178](http://127.0.0.1:5178). For Testnet chain reads, copy `.env.example` to `.env.local` and set `VITE_NEAR_ESCROW=escrow.pactpay-530c506b.testnet` and `VITE_NEAR_ESCROW_V2=escrow-v2.pactpay-530c506b.testnet`. The public RPC can be set with `VITE_NEAR_RPC`. Set both public contract variables in Vercel's Production environment before building; backend `PACTPAY_` variables alone do not configure the frontend.
 
 A standalone Vite session can render the frontend and read public NEAR state. To test the Vercel functions locally, run the project through the Vercel development environment with the corresponding server settings. The [evidence storage worker](infra/r2/) and [reconciliation guide](docs/near/RESOLUTION-RECOVERY.md) describe the supporting services.
 
 | Setting | Used for |
 | --- | --- |
-| `VITE_NEAR_ESCROW_V2`, `VITE_NEAR_RPC` | Public V2 contract address and NEAR RPC URL |
+| `VITE_NEAR_ESCROW`, `VITE_NEAR_ESCROW_V2`, `VITE_NEAR_RPC` | Public V1/V2 contract addresses and NEAR RPC URL |
 | `VITE_NEAR_AUTH_TESTNET_CLIENT_ID`, `VITE_NEAR_AUTH_TESTNET_DOMAIN` | Optional Auth0 SPA client and tenant. Configure allowed callback URLs and web origins for the selected hosts. |
 | `PACTPAY_NEAR_ESCROW_V2`, `PACTPAY_SESSION_SECRET` | Server-side contract selection and signed evidence sessions |
 | `PACTPAY_STORAGE_URL`, `PACTPAY_STORAGE_SECRET` | R2 worker endpoint and server credential |

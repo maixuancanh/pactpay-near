@@ -38,6 +38,37 @@ async function main() {
     const ledger = index => escrow.view('get_position_ledger', key(index));
     const agreement = index => escrow.view('get_agreement', key(index));
     const claims = index => escrow.view('get_claims', key(index));
+    const upgradeCheckpoint = async label => {
+      if (!process.argv[4]) return;
+      const snapshot = async () => ({
+        token: await escrow.view('get_token', {}),
+        booking: await escrow.view('get_booking', {id}),
+        positions: await Promise.all(buyers.map(async (_, index) => ({
+          ledger: await ledger(index), agreement: await agreement(index), claims: await claims(index),
+        }))),
+        balances: await Promise.all([escrow,merchant,...buyers].map(balance)),
+      });
+      const before = await snapshot();
+      // Pending is not included in this fixture: callback-loss liabilities are
+      // reconciled against token receipts in sandbox-recovery, never double-counted.
+      let debt = 0n;
+      for (const {ledger: row} of before.positions) {
+        assert.equal(row.pending, '0');
+        const outstanding = ['unallocated','retained','available'].reduce((n,k) => n+BigInt(row[k]),0n);
+        assert.equal(outstanding+BigInt(row.paid),BigInt(row.funded));
+        debt += outstanding;
+      }
+      assert.equal(String(debt),before.balances[0]);
+      await escrow.deploy(process.argv[4]);
+      if (process.env.PACTPAY_SANDBOX_BAD_MIGRATION === '1') {
+        await escrow.call(escrow, 'sandbox_bad_migrate', {}, {gas});
+      }
+      assert.deepEqual(await snapshot(),before,`State changed during candidate upgrade: ${label}`);
+      // Continue each branch against the candidate after the active-remedy checkpoint.
+      if (label !== 'active-remedy') await escrow.deploy(process.argv[3]);
+      console.log(`Stateful WASM upgrade checkpoint passed: ${label}`);
+    };
+
     for (const [position, buyer] of buyers.entries()) {
       await root.call(token, 'ft_transfer', {receiver_id: buyer.accountId, amount: '30'}, {attachedDeposit: '1'});
       const args = {receiver_id: escrow.accountId, amount: '20', msg: JSON.stringify({booking: id, position})};
@@ -57,15 +88,18 @@ async function main() {
       }
       await fund(buyer);
       assert.equal(await balance(buyer), '10');
+      if (position === 0) await upgradeCheckpoint('partially-funded');
     }
     assert.equal(await balance(escrow), '80');
     await merchant.call(escrow, 'capture', {id});
+    await upgradeCheckpoint('captured');
     await worker.provider.fastForward(1000);
     for (const index of [0, 1, 2]) {
       await buyers[index].call(escrow, 'open_dispute', key(index));
       await buyers[index].call(escrow, 'revise_evidence', {...key(index), commitment: rootHash});
     }
     await buyers[3].call(escrow, 'confirm_completion', key(3));
+    await upgradeCheckpoint('disputed-and-available-claim');
     const start = await clock();
     const proposalFor = (index, overrides = {}) => ({
       schema: 'pactpay.resolution.v2', network: 'testnet', escrow: escrow.accountId,
@@ -104,6 +138,7 @@ async function main() {
     await buyers[0].call(escrow, 'revise_evidence', {...key(0), commitment: 'f'.repeat(64)});
     assert.equal((await agreement(0)).proposal.evidenceRoot, active.evidenceRoot);
 
+    await upgradeCheckpoint('active-remedy');
     const claim = (signer, claim_id, claimGas = gas) => signer.call(escrow, 'claim_v2', {claim_id}, {gas: claimGas});
     const immediate = (await claims(0))[0];
     assert.equal((await claims(0)).length, 1);
@@ -174,6 +209,12 @@ async function main() {
     assert.equal(await balance(escrow), String(liabilities));
     assert.equal(await balance(merchant), '55');
     assert.equal(await balance(buyers[1]), '15');
+    console.log(JSON.stringify({schema:'pactpay.sandbox-scenarios.v1',environment:'isolated-sandbox',
+      immediate:{buyer:'0',merchant:immediate.amount,retained:'8'},
+      success:{buyer:'0',merchant:String(BigInt(immediate.amount)+BigInt(bonus.amount)),retained:'0'},
+      fallback:{buyer:fallbackClaims.filter(record=>record.recipient===buyers[1].accountId).reduce((n,record)=>n+BigInt(record.amount),0n).toString(),
+        merchant:fallbackClaims.filter(record=>record.recipient===merchant.accountId).reduce((n,record)=>n+BigInt(record.amount),0n).toString(),retained:'0'},
+      finalEscrowBalance:await balance(escrow),finalLiabilities:String(liabilities)}));
     console.log('V2 Sandbox passed funding, stale and invalid agreements, success and fallback, retry, concurrent claims and conservation.');
   } finally {
     await worker.tearDown();

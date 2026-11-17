@@ -13,6 +13,7 @@ import type {AssessmentCase} from "./assessment-digest.mjs";
 import type {analyzeResolutionEvidence} from "../claimguard";
 import ResolutionExport from "./ResolutionExport";
 import CaseTimeline from "./CaseTimeline";
+import OutcomePreview from "./OutcomePreview";
 import {nextResolutionAction} from "./next-action";
 import {reminderForRole} from "../../../lib/near-reminders.mjs";
 import type {ResolutionEvidenceOpening} from "./proof";
@@ -293,6 +294,7 @@ export default function ResolutionWorkspace({escrow, booking, position, id, inde
           <span className="pp-badge">{agreement.status === "CompletionSubmitted" ? "Completion submitted" :
             agreement.status === "FallbackAllocated" ? "Deadline split applied" : agreement.status}</span>
         </header>
+        <OutcomePreview key={agreement.digest} agreement={agreement} account={account} time={time}/>
         <table className="near-split-table">
           <caption>Agreed payment split <span>All amounts in PDEMO</span></caption>
           <thead><tr><th scope="col">When</th><th scope="col">Buyer refund</th><th scope="col">Merchant payout</th></tr></thead>
