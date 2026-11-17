@@ -1,13 +1,18 @@
 import {ChevronDown} from "lucide-react";
 import {PaymentOutcomes, WorkshopWorkflow} from "./NearPaymentWorkflows";
+import {AgreementStory, ProofStory, ReliabilityStory} from "./NearTrustStories";
 
 const steps = [
-  ["new-booking", "Create the booking", "The merchant sets each buyer’s share, the funding deadline and the service end time, then shares the exact terms privately."],
+  ["new-booking", "Create and invite", "Set each buyer’s share and the deadlines. Share an invite link or QR code, and send the exact terms privately."],
   ["step-agree", "Verify and fund your share", "Each buyer verifies and accepts the terms, then funds their share in PDEMO using a NEAR Testnet wallet."],
   ["control-outcome", "Confirm funding and settle", "Once every share is funded, the merchant confirms funding on-chain before the service ends. Afterward, each share follows its own payout, refund or dispute path."],
 ];
 
 const questions = [
+  ["How do I know what happens if the fix is late?",
+    "Open the Agreement tab and compare the three outcomes before approving. The preview shows immediate allocations, what happens after confirmation and the split at the review deadline. Both parties sign those exact terms; a settlement transaction is still needed when the deadline passes."],
+  ["Will running AI again change the payment?",
+    "No. AI produces a review for you to inspect. Only the agreed contract actions change allocations. PactPay shows your remaining daily attempts and warns before repeating the same evidence. A failed provider request may still use an attempt; you can continue with a manual agreement."],
   ["Someone sent me a booking link. Where do I start?",
     "Open the shared link. If you received only a booking ID, enter it in the booking workspace and select Load booking. Check your share and the funding deadline. Connect the wallet address the organizer added to the booking, then ask them for the exact terms if you don’t have them yet."],
   ["Why can’t I accept the terms or contribute?",
@@ -25,7 +30,7 @@ const questions = [
   ["My payout or refund is available. Why isn’t it in my wallet?",
     "Open Claim payout or refund from your booking, connect the wallet listed as the recipient and select Claim. If your wallet hasn’t been registered to receive PDEMO, use Register to receive token first. If the transfer is pending, wait for the outcome before signing again. For a Resolution Agreement payout, use the public proof to check the finalized transaction."],
   ["Can I sign in with Google and use my wallet later?",
-    "Yes. Google signs you into your PactPay profile. Link the NEAR Testnet wallet listed on your booking when you are ready to sign transactions or open private evidence."],
+    "Yes. Social sign-in can create a booking with a NEAR Testnet MPC account. You review the transaction before approving it. You can also link an external wallet; private evidence uses a connected NEAR wallet. Always use the account listed on the booking."],
   ["How do I check what the AI found?",
     "Open View evidence under a finding to read the supporting excerpt. If the excerpt includes a page number, choose your local copy of the source PDF to open that page. PactPay labels findings with insufficient evidence. The buyer and merchant decide whether to sign the agreement."],
   ["How can I confirm a payout on NEAR?",
@@ -57,20 +62,24 @@ export default function NearLandingDetails() {
       </ol>
     </section>
     <PaymentOutcomes />
+    <AgreementStory />
     <section className="pt-section near-private-dispute" aria-labelledby="near-dispute-title">
-      <img src="/art/pactpay/private-dispute.webp" alt="" width="660" height="520" loading="lazy" />
+      <img src="/art/pactpay/evidence-review.svg" alt="An encrypted excerpt goes to an AI reviewer, followed by separate buyer and merchant approvals" width="460" height="410" loading="lazy" />
       <div className="pt-section-heading">
         <h2 id="near-dispute-title">Resolve a dispute with private evidence</h2>
-        <p>In Resolution Agreement V2, the buyer and merchant can release the undisputed amount and hold the rest while the merchant fixes the issue. Both sides agree on what counts as completion, when the merchant must submit proof, and how to split the remaining funds if the review deadline passes.</p>
+        <p>The buyer and merchant can release the undisputed amount and hold the rest while the merchant fixes the issue. Both sides agree on what counts as completion, when the merchant must submit proof, and how to split the remaining funds if the review deadline passes.</p>
         <ul>
           <li>Extract text from PDFs or images on your device. Review and mask sensitive details before sharing an encrypted excerpt.</li>
-          <li>Review findings from NEAR AI against cited excerpts. Both parties sign the payment split, and the buyer can confirm the fix after reviewing completion evidence.</li>
+          <li>Review NEAR AI Cloud findings beside the cited excerpts. View evidence opens the supporting text; missing support is labeled Insufficient evidence. AI cannot sign an agreement or release funds.</li>
+          <li>See your AI attempt budget before running a review. Each account gets up to three attempts per share per UTC day, with a warning before repeating the same inputs.</li>
           <li>Preview the exact excerpts before exporting a private proof. For a public proof, the <a href="/verify">Verify page</a> checks wallet approvals and finalized payouts without requiring private excerpts.</li>
         </ul>
         <a className="pp-secondary" href="/verify">Try the workshop proof</a>
       </div>
     </section>
     <WorkshopWorkflow />
+    <ProofStory />
+    <ReliabilityStory />
     <section className="pt-section pt-faq" id="pt-faq" aria-labelledby="near-faq-title">
       <div className="pt-section-heading pt-centered">
         <h2 id="near-faq-title">Booking and payment <span className="pt-underline">questions.</span></h2>

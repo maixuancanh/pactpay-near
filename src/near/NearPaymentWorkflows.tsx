@@ -1,6 +1,6 @@
-import {v2Escrow} from "./agreements/chain-v2";
 import {useState} from "react";
 import {ArrowRight} from "lucide-react";
+import {workshopCase} from "./NearTrustStories";
 
 const paths = [
   {
@@ -24,10 +24,10 @@ const paths = [
 ];
 
 const stages = [
-  {label:"Fund", summary:"Three buyers deposit 20 PDEMO each. The merchant captures the booking after all shares are funded.", amounts:[60,0,0], status:["In escrow","In escrow","In escrow"]},
-  {label:"Confirm or dispute", summary:"Two buyers confirm completion. Their 40 PDEMO becomes claimable while the third buyer’s 20 PDEMO remains in escrow.", amounts:[20,40,0], status:["Merchant payout","Merchant payout","Disputed"]},
-  {label:"Pay 12, hold 8", summary:"Both parties sign. The merchant claims 12 PDEMO from the disputed share. Another 8 stays in escrow until the follow-up is reviewed.", amounts:[8,52,0], status:["Merchant payout","Merchant payout","12 released � 8 held"]},
-  {label:"Confirm the follow-up", summary:"The buyer confirms the follow-up workshop. After claiming the last 8 PDEMO, the merchant has received all 60. If review expires, the signed deadline split applies instead.", amounts:[0,60,0], status:["Paid to merchant","Paid to merchant","Follow-up confirmed"]},
+  {label:"Fund the booking", summary:"A buyer contributes 20 PDEMO. The merchant captures the funded workshop booking, then the buyer disputes the missing recording.", amounts:[20,0,0], status:["20 PDEMO funded"]},
+  {label:"Review private evidence", summary:"The demo encrypts sample excerpts and checks the AI findings. The review alone releases nothing: all 20 PDEMO stays in escrow.", amounts:[20,0,0], status:["AI reviewed · funds still held"]},
+  {label:"Agree: 12 now, 8 held", summary:"Both parties approve the same agreement. The merchant claims 12 PDEMO; 8 remains held while the recording is supplied and reviewed.", amounts:[8,12,0], status:["Both parties approved"]},
+  {label:"Confirm and receive", summary:"The buyer confirms the remedy. The merchant claims the remaining 8 PDEMO. Booking #5 records both finalized payouts; the alternative deadline split was not used.", amounts:[0,20,0], status:["Remedy confirmed"]},
 ];
 
 function Art({name}: {name:string}) {
@@ -62,20 +62,20 @@ export function PaymentOutcomes() {
 export function WorkshopWorkflow() {
   const [step, setStep] = useState(0);
   const stage = stages[step];
-  const destinations = ["Held in escrow", step === 3 ? "Merchant received" : "Merchant can claim", step === 3 ? "Buyer received" : "Buyer can claim"];
+  const destinations = ["Held in escrow", "Merchant received", "Buyer received"];
   return <section className="pt-section" aria-labelledby="near-example-title">
     <div className="pt-section-heading pt-centered">
-      <h2 id="near-example-title">A workshop booking, split three ways</h2>
-      <p>Follow an example booking from three 20 PDEMO contributions to a payout after a service dispute.</p>
+      <h2 id="near-example-title">From a missing recording to a resolved payment.</h2>
+      <p>Follow Booking #5: a synthetic workshop dispute with real NEAR Testnet transactions. This illustration traces the completed case.</p>
     </div>
     <div className="near-flow-switch" role="group" aria-label="Workshop workflow step">
       {stages.map(({label}, index) => <button type="button" key={label} aria-pressed={step === index} onClick={() => setStep(index)}>{label}</button>)}
     </div>
     <div className="near-flow-board near-workshop-flow" aria-live="polite">
       <div className="near-flow-buyers">
-        {["planner","maker","explorer"].map((person,index) => <div className="near-flow-buyer" key={person}>
+        {["planner"].map((person,index) => <div className="near-flow-buyer" key={person}>
           <img src={`/art/pactpay/avatar-${person}.webp`} alt="" width="44" height="44" loading="lazy" />
-          <div><strong>Buyer {index+1} · 20 PDEMO</strong><span>{stage.status[index]}</span></div>
+          <div><strong>Workshop buyer · 20 PDEMO</strong><span>{stage.status[index]}</span></div>
         </div>)}
       </div>
       <ArrowRight className="near-flow-arrow" aria-hidden="true" />
@@ -91,7 +91,7 @@ export function WorkshopWorkflow() {
       <button type="button" className="pp-secondary" onClick={() => setStep((step + 1) % stages.length)}>
         {step === stages.length - 1 ? "Replay example" : "Next step"}
       </button>
-      <a href={v2Escrow ? `/booking?booking=0&escrow=${encodeURIComponent(v2Escrow)}` : "/booking"}>Open testnet booking <ArrowRight size={16} aria-hidden="true" /></a>
+      <a href={workshopCase}>Open Booking #5 <ArrowRight size={16} aria-hidden="true" /></a>
     </div>
   </section>;
 }

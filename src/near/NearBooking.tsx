@@ -588,8 +588,8 @@ export default function NearBooking() {
     </header>
     <main id="pp-main" className="pp-main">
       {!workspace && <><PortalHero signedIn={false} paused={paused} onToggleMotion={toggle}
-        networkLabel="NEAR Testnet" exploreHref="/booking?booking=0"
-        description="Pay your share of a group booking on NEAR Testnet. Escrow holds each contribution. If a share is disputed, the buyer and merchant can share encrypted evidence and agree on a split."
+        networkLabel="NEAR Testnet" exploreHref="/booking?booking=5&amp;escrow=escrow-v2.pactpay-530c506b.testnet"
+        description="Book together. Keep each payment accountable. Share private evidence if something goes wrong, preview the agreement before signing, and check the final payout on NEAR Testnet."
         startLabel="Open booking workspace"
         onStart={() => location.assign("/booking")} />
         <NearLandingDetails />
