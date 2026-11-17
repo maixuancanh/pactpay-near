@@ -13,7 +13,7 @@ const labels:Record<string,string> = {
   proofIdentity:"Testnet and escrow",agreementDigest:"Signed agreement digest",bilateralApproval:"Approval by both wallets",
   contractVersionAndCode:"Contract version and code hash",claimPayments:"Finalized payouts",evidenceSnapshot:"Private evidence snapshot",
   privateTermsCommitment:"Private terms",evidencePlaintext:"Private evidence contents",
-  evidenceSource:"Evidence source",aiTranscript:"Signed AI transcript",aiPlaintextBinding:"AI plaintext binding",
+  evidenceSource:"Evidence source",aiTranscript:"Signed AI transcript",aiAttestationNonce:"Attestation challenge",aiPlaintextBinding:"AI plaintext binding",
 };
 
 const caseCheckNames = {
@@ -70,17 +70,33 @@ export default function VerifyPage(){
       <a href="/">PactPay home</a>
       <h1>Verify a Resolution Agreement</h1>
       <p>Check public transactions on NEAR Testnet. Private excerpts and their decryption keys stay in your browser.</p>
+      <section aria-labelledby="workshop-demo-title">
+        <h2 id="workshop-demo-title">Try a workshop dispute</h2>
+        <p>Booking #0 is a scripted Testnet case. Check the two wallet approvals and the finalized payouts. No wallet is needed.</p>
+        <div className="near-verify-actions">
+          <button type="button" className="pp-primary" disabled={busy} onClick={()=>void verify()}>Verify sample booking</button>
+          <button type="button" className="pp-secondary" disabled={busy} onClick={()=>void verify(undefined, true)}>Check a modified proof</button>
+          <a href="/pactpay-v2-sample-proof.json" download>Download sample JSON</a>
+        </div>
+        <p>Booking #2 is the separate two-wallet demo. It shows how the buyer and merchant agreed to release 12 PDEMO and hold 8 until the buyer confirmed the fix.</p>
+        <a href="/booking?booking=2&escrow=escrow-v2.pactpay-530c506b.testnet">Open Booking #2</a>
+      </section>
+      <section aria-labelledby="privacy-boundary-title">
+        <h2 id="privacy-boundary-title">Who can see the evidence?</h2>
+        <p>NEAR records wallet addresses, amounts and commitments. The buyer and merchant can open the excerpts shared with them. When a participant requests an assessment, PactPay encrypts the selected excerpts and terms for NEAR AI Cloud. The assessment cannot release funds.</p>
+        <p>The public sample contains no AI transcript or private excerpts. To check a private export, load it below. The browser sends only the public agreement to the verification API.</p>
+      </section>
+      <h2>Check your own proof</h2>
       <form className="pp-form" onSubmit={event=>void verify(event)}>
         <label>Agreement proof<input name="proof" type="file" accept=".json,application/json" required/></label>
         <button className="pp-primary" disabled={busy}>{busy ? "Checking…" : "Verify agreement"}</button>
       </form>
-      <button type="button" className="pp-secondary" disabled={busy} onClick={()=>void verify()}>Verify sample booking</button>
-      <button type="button" className="pp-secondary" disabled={busy} onClick={()=>void verify(undefined, true)}>Verify modified sample</button>
-      {modifiedSample && <p>Sample booking with the immediate merchant payout changed from 12 to 13 PDEMO. The original signatures and transaction references are preserved.</p>}
+      {modifiedSample && <p>Sample changes the immediate merchant payout from 12 to 13 PDEMO. The verifier checks it against the original agreement. This test sends no transaction.</p>}
       {payouts.length > 0 && <ul aria-label="Finalized payout transactions">{payouts.map(({id,hash,amount})=>
         <li key={id}><a href={"https://testnet.nearblocks.io/txns/"+encodeURIComponent(hash)} target="_blank" rel="noreferrer">
           View {amount} PDEMO payout on NEAR
         </a></li>)}</ul>}
+      {busy && <p role="status">Checking proof…</p>}
       {error && <p role="alert">{error}</p>}
       {checks.length>0 && <ul aria-live="polite">{checks.map(check=><li key={check.name}>
         <strong>{labels[check.name] ?? check.name}</strong> · {check.status}

@@ -73,13 +73,18 @@ export async function verifyPrivateFields({proposal:p,authorized}:AuthorizedReso
         detail:"The encrypted transcript does not match the signed agreement."});
       return checks;
     }
+    const nonce = transcript.expectedAttestationNonce;
+    if (nonce !== undefined && (!/^[a-f0-9]{64}$/.test(nonce) || nonce !== transcript.attestation?.nonce)) {
+      return [...checks,{name:"aiTranscript",status:"Failed",reason:"attestation-nonce-mismatch"}];
+    }
     try {
       const sdk=await import("@nearai/inference-sdk");
       const attestation=await sdk.verifyModelAttestation({attestation:transcript.attestation,
-        clientBinding:{nonce:transcript.attestation.nonce},
+        clientBinding:{nonce:nonce ?? transcript.attestation.nonce},
         verifiers:{gpuEvidence:sdk.createGpuEvidenceVerifier({nrasUrl:new URL("/api/near-nras",location.origin).href})}});
       try {
         sdk.verifyModelResponse({requestBody,responseBody,signature:transcript.signature,attestation});
+        checks.push({name:"aiAttestationNonce",status:nonce ? "Passed" : "Unavailable",reason:nonce ? "challenge-matches" : "legacy-proof-without-challenge"});
         checks.push({name:"aiTranscript",status:"Passed",reason:"model-signature-verified",
           detail:"The signature covers the encrypted request and response."});
       } catch {

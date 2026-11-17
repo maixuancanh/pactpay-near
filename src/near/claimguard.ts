@@ -3,8 +3,22 @@ import {encode} from "./evidence-crypto";
 import {assessmentPrompt, assessmentPromptVersion, parseAssessment, type AssessmentSource} from "./agreements/assessment";
 import {resolutionAssessmentDigest, type AssessmentCase} from "./agreements/assessment-digest.mjs";
 
-class ExportableInferenceClient extends InferenceClient {
+export class ExportableInferenceClient extends InferenceClient {
   private captured?: {id:string; requestBody:Uint8Array; responseBody:Promise<Uint8Array>};
+
+  private expectedAttestationNonce?: string;
+
+  protected override createGatewayFetch(): typeof fetch {
+    const dispatch = super.createGatewayFetch();
+    return (input, init) => {
+      const url = new URL(input instanceof Request ? input.url : String(input));
+      const nonce = url.searchParams.get("nonce");
+      if (url.pathname.endsWith("/attestation/report") && url.searchParams.has("model") && /^[a-f0-9]{64}$/.test(nonce ?? "")) {
+        this.expectedAttestationNonce = nonce!;
+      }
+      return dispatch(input, init);
+    };
+  }
 
   protected override registerResponse(
     record: Parameters<InferenceClient["registerResponse"]>[0],
@@ -19,7 +33,12 @@ class ExportableInferenceClient extends InferenceClient {
     if (!record || record.id !== id) throw new Error("The signed AI transcript is unavailable.");
     const verified = await this.verifyResponse(id);
     if (verified.signatureKind !== "provider_tee") throw new Error("The model TEE response could not be verified.");
+    const expectedAttestationNonce = this.expectedAttestationNonce;
+    if (!expectedAttestationNonce || verified.attestation.report.nonce !== expectedAttestationNonce) {
+      throw new Error("Model attestation nonce does not match the outbound challenge.");
+    }
     return {
+      expectedAttestationNonce,
       version:1 as const,
       request:encode(record.requestBody),
       response:encode(await record.responseBody),

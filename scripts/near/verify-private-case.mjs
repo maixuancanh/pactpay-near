@@ -70,7 +70,7 @@ console.log(evidence.excerptKey
   ? "Ciphertext and readable text match the current finalized evidence commitment."
   : "Ciphertext matches the current finalized commitment. This older export has no excerpt key for verifying readable text.");
 if (data.analysis?.proof) {
-  const {version,request,response,signature,attestation} = data.analysis.proof;
+  const {version,request,response,signature,attestation,expectedAttestationNonce} = data.analysis.proof;
   if (version !== 1 || signature?.kind !== "provider_tee" || typeof attestation?.nonce !== "string") {
     throw new Error("Unsupported AI proof.");
   }
@@ -80,7 +80,12 @@ if (data.analysis?.proof) {
     throw new Error("AI proof belongs to another completion.");
   }
   const {verifyModelAttestation,verifyModelResponse} = await import("@nearai/inference-sdk/node");
-  const verified = await verifyModelAttestation({attestation,clientBinding:{nonce:attestation.nonce}});
+  if (expectedAttestationNonce !== undefined &&
+      (!/^[a-f0-9]{64}$/.test(expectedAttestationNonce) || expectedAttestationNonce !== attestation.nonce)) {
+    throw new Error("Model attestation nonce differs from the exported challenge.");
+  }
+  const verified = await verifyModelAttestation({attestation,clientBinding:{nonce:expectedAttestationNonce ?? attestation.nonce}});
+  if (expectedAttestationNonce === undefined) console.log("The legacy export does not include the outbound challenge.");
   verifyModelResponse({requestBody,responseBody,signature,attestation:verified});
   console.log("Verified the NEAR AI model attestation and signature over the encrypted request and response.");
   console.log("The exported readable AI text is a separate field. The transcript proof covers the encrypted bytes.");

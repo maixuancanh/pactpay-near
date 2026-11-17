@@ -4,7 +4,7 @@ import {verifyEvidenceManifest} from "../../src/near/agreements/evidence-manifes
 import {readFile} from "node:fs/promises";
 import {resolve} from "node:path";
 import {fileURLToPath} from "node:url";
-import {providers} from "near-api-js";
+import {caseReader} from "../../lib/near-case-rpc.mjs";
 import {agreementDigest} from "../../src/near/agreements/canonical.mjs";
 import {inspectClaim} from "./reconcile-resolution-v2.mjs";
 
@@ -309,10 +309,10 @@ export async function verifyResolutionCase(data,reader) {
     verifiedClaims = checked.map(({id,amount}, index) => ({id, amount, hash:receipts.claims[index].hash}));
   });
   if (p.assessmentDigest !== null) {
-    await check("aiTranscript", async () => {
+    const transcriptVerified = await check("aiTranscript", async () => {
       const transcript = authorized?.transcript;
       if (!transcript) throw new Error("Encrypted transcript absent.");
-      const {id,version,request,response,signature,attestation,model,promptVersion,inputHash,outputHash} = transcript;
+      const {id,version,request,response,signature,attestation,model,promptVersion,inputHash,outputHash,expectedAttestationNonce} = transcript;
       requireProof(version === 1 && typeof id === "string" && typeof model === "string" &&
         typeof promptVersion === "string" && isDigest(inputHash) && isDigest(outputHash) &&
         signature?.kind === "provider_tee" && typeof attestation?.nonce === "string",
@@ -325,12 +325,14 @@ export async function verifyResolutionCase(data,reader) {
       } catch {
         throw new CheckFailure("Invalid encrypted response.");
       }
-      requireProof(parsed?.id === id && await resolutionAssessmentDigest(p,{model,promptVersion,inputHash,outputHash,proof:{request,response}}) === p.assessmentDigest,
+      requireProof(parsed?.id === id && await resolutionAssessmentDigest(p,{model,promptVersion,inputHash,outputHash,proof:{request,response,expectedAttestationNonce}}) === p.assessmentDigest,
         "Transcript differs from the agreement assessment commitment.");
+      requireProof(expectedAttestationNonce === undefined || (isDigest(expectedAttestationNonce) &&
+        expectedAttestationNonce === attestation.nonce), "Model attestation nonce differs from the committed challenge.");
       const {verifyModelAttestation, verifyModelResponse} = await import("@nearai/inference-sdk/node");
       let verified;
       try {
-        verified = await verifyModelAttestation({attestation,clientBinding:{nonce:attestation.nonce}});
+        verified = await verifyModelAttestation({attestation,clientBinding:{nonce:expectedAttestationNonce ?? attestation.nonce}});
       } catch (error) {
         const code = error?.code ?? error?.failure?.code;
         const reason = error?.details?.reason ?? error?.failure?.details?.reason;
@@ -343,25 +345,30 @@ export async function verifyResolutionCase(data,reader) {
         throw new CheckFailure("Model signature did not authenticate the encrypted bytes.");
       }
     });
+    const challengeVerified = transcriptVerified && data.authorized?.transcript?.expectedAttestationNonce !== undefined;
+    checks.push({name:"aiAttestationNonce",status:challengeVerified ? "Passed" : "Unavailable"});
     checks.push({name:"aiPlaintextBinding",status:"Unavailable",detail:"The SDK has no portable two-way plaintext binding."});
   }
   return {ok:checks.every(item => item.status === "Passed"),checks,...(verifiedClaims ? {verifiedClaims} : {})};
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  if (process.argv.length !== 3) {
+  if (process.argv.length !== 3 && !(process.argv.length === 4 && process.argv[3] === "--check-modified-sample")) {
     console.error("Usage: node scripts/near/verify-resolution-case.mjs proof.json");
     process.exitCode = 2;
   } else {
     try {
-      const rpc = new providers.JsonRpcProvider({url:"https://test.rpc.fastnear.com"});
-      const result = await verifyResolutionCase(JSON.parse(await readFile(process.argv[2],"utf8")), {
-        transaction:(txHash,signer) => rpc.txStatusReceipts(txHash,signer,"FINAL"),
-        view:(escrow, method, args, blockId) => rpc.callFunction(escrow,method,args,{blockId}),
-        codeHash:async (escrow,blockId) => (await rpc.query({request_type:"view_account",account_id:escrow,block_id:blockId})).code_hash,
-      });
+      const proof = JSON.parse(await readFile(process.argv[2],"utf8"));
+      const modified = process.argv[3] === "--check-modified-sample";
+      if (modified) proof.proposal.immediateMerchant = "13";
+      const result = await verifyResolutionCase(proof,caseReader(AbortSignal.timeout(25000)));
       console.log(JSON.stringify(result,null,2));
-      process.exitCode = result.ok ? 0 : 1;
+      const passed = name => result.checks.some(check => check.name === name && check.status === "Passed");
+      const rejected = result.checks.some(check => check.name === "agreementDigest" && check.status === "Failed");
+      const settlementVerified = !proof.authorized && ["proofIdentity","agreementDigest",
+        "bilateralApproval","contractVersionAndCode","claimPayments"].every(passed) &&
+        result.checks.every(check => check.status !== "Failed");
+      process.exitCode = (modified ? rejected : result.ok || settlementVerified) ? 0 : 1;
     } catch {
       console.error("The resolution proof could not be read.");
       process.exitCode = 2;

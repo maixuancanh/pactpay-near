@@ -6,6 +6,25 @@ PactPay helps groups book a service, agree on each person's share, and pay throu
 
 The public demo runs on **NEAR Testnet** and uses **PDEMO**, a test token with no monetary value.
 
+## Review in two minutes
+
+1. Open [Verify](https://pactpay-near-testnet-web.vercel.app/verify) and select **Verify sample booking**. The public sample is Booking #0, a scripted Testnet settlement with receipts.
+2. Select the modified sample to see the verifier reject an altered amount. Both checks are read-only.
+3. Open [Booking #2](https://pactpay-near-testnet-web.vercel.app/booking?booking=2&escrow=escrow-v2.pactpay-530c506b.testnet) for the two-wallet demo. The receipt links below show the 12 and 8 PDEMO payouts.
+
+Run the public sample check locally after `npm ci`:
+
+```sh
+node scripts/near/verify-resolution-case.mjs public/pactpay-v2-sample-proof.json
+node scripts/near/verify-resolution-case.mjs public/pactpay-v2-sample-proof.json --check-modified-sample
+```
+
+This uses public Testnet RPC data and requires no wallet or API key. The sample proves the settlement. The separate [NEAR AI run](docs/near/testnet-resolution-v2-ai.json) records a signed encrypted transcript check. Neither public booking proof contains that transcript.
+
+## Hackathon versions
+
+PactPay started as a group-booking and payment project. The NEAR entry added Testnet escrow, private dispute evidence, NEAR AI review and receipt verification. Use [1040a12](https://github.com/maixuancanh/pactpay-near/tree/1040a12) for the repository snapshot published before the deadline. [9afb5c2](https://github.com/maixuancanh/pactpay-near/tree/9afb5c2) is a post-deadline update that adds the verifiable-service and NEAR Auth changes. Subsequent verifier changes are also post-deadline.
+
 ## How a booking works
 
 1. **Set the terms.** The merchant enters the service terms, participant wallet addresses, contribution amounts, funding deadline, and service end time. PactPay records a cryptographic commitment to the exact terms. The merchant shares the text privately with participants.

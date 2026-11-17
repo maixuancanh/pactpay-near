@@ -9,5 +9,6 @@ export async function resolutionAssessmentDigest(scope, material) {
     "pactpay.assessment.v2",scope.network,scope.escrow,scope.booking,scope.position,scope.version,
     scope.evidenceRoot,scope.termsCommitment,promptVersion,model,inputHash,outputHash,
     requestHash,responseHash,"encrypted-transcript-verified","unavailable",
+    ...(proof.expectedAttestationNonce === undefined ? [] : [proof.expectedAttestationNonce]),
   ]));
 }

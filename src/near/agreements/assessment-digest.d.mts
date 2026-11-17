@@ -5,6 +5,6 @@ export interface AssessmentDigestMaterial {
   promptVersion: string;
   inputHash: string;
   outputHash: string;
-  proof: {request:string; response:string};
+  proof: {request:string; response:string; expectedAttestationNonce?:string};
 }
 export function resolutionAssessmentDigest(scope: AssessmentCase, material: AssessmentDigestMaterial): Promise<string>;

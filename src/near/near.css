@@ -314,3 +314,5 @@ body:has(.near-app) { margin: 0; }
 .near-share-permissions dl { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 6px 0; }
 .near-share-permissions dt { font-weight: 600; }
 .near-share-permissions dd { margin: 0; }
+
+.near-verify-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1rem; }

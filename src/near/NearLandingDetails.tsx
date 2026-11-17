@@ -67,7 +67,7 @@ export default function NearLandingDetails() {
           <li>Review findings from NEAR AI against cited excerpts. Both parties sign the payment split, and the buyer can confirm the fix after reviewing completion evidence.</li>
           <li>Preview the exact excerpts before exporting a private proof. For a public proof, the <a href="/verify">Verify page</a> checks wallet approvals and finalized payouts without requiring private excerpts.</li>
         </ul>
-        <a className="pp-secondary" href="/verify">Try the public proof checker</a>
+        <a className="pp-secondary" href="/verify">Try the workshop proof</a>
       </div>
     </section>
     <WorkshopWorkflow />

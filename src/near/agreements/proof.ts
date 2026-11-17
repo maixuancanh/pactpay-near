@@ -71,7 +71,7 @@ export interface ResolutionEvidenceOpening {
 }
 
 type AssessmentResult = Awaited<ReturnType<typeof import("../claimguard").analyzeResolutionEvidence>>;
-export type ResolutionTranscript = AssessmentResult["proof"] &
+export type ResolutionTranscript = Omit<AssessmentResult["proof"],"expectedAttestationNonce"> & {expectedAttestationNonce?:string} &
   Pick<AssessmentResult,"id"|"model"|"promptVersion"|"inputHash"|"outputHash">;
 
 export interface AuthorizedResolutionProof extends ResolutionProof {
@@ -102,6 +102,7 @@ export function authorizedResolutionProof(
         id:transcript.id,version:transcript.version,model:transcript.model,promptVersion:transcript.promptVersion,
         inputHash:transcript.inputHash,outputHash:transcript.outputHash,request:transcript.request,response:transcript.response,
         signature:transcript.signature,attestation:transcript.attestation,
+        expectedAttestationNonce:transcript.expectedAttestationNonce,
       },
     },
   };
